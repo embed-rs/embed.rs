@@ -1,3 +1,12 @@
 baseurl = "http://embed.rs/"
 title = "embed.rs"
 languageCode = "en-us"
+copyright = "&copy; <a href=\"https://github.com/embed-rs\">The embed.rs Team</a> 2016"
+
+[params.highlight]
+style = "github"
+languages = ["rust", "c"]
+
+[[params.social]]
+url = "/index.xml"
+fa_icon = "fa-rss"
