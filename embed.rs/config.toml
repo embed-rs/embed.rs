@@ -2,6 +2,7 @@ baseurl = "http://embed.rs/"
 title = "embed.rs"
 languageCode = "en-us"
 copyright = "&copy; <a href=\"https://github.com/embed-rs\">The embed.rs Team</a> 2016"
+theme = "hemingway"
 
 [params.highlight]
 style = "github"
