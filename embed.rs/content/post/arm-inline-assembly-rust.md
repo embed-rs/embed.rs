@@ -37,7 +37,7 @@ mov    eax, 1fh
 in Intel syntax and 
 
 ```attasm
-movl   %eax, $0x1f
+movl   $0x1f, %eax
 ```
 
 in AT&T syntax.
