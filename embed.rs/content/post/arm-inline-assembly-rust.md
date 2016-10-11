@@ -428,7 +428,7 @@ fn main() {
 
 Inline assembly is tricky to get right and the documentation has a bit of a patchwork feel, especially if one is spoiled by the excellent material that is Rust's other documentation. Sometimes, though, there is no way around a few lines of inline assembly - a situation we will explore in another article.
 
-*Written by [Marc Brinkmann](https://github.com/mbr). Many thanks to Oliver Schneider and [Philip Oppermann](phil-opp.com).*
+*Written by [Marc Brinkmann](https://github.com/mbr). Many thanks to Oliver Schneider and [Philip Oppermann](http://phil-opp.com).*
 
 <!-- note: MathJax code should be moved to the theme at some point-->
 <script type="text/javascript"
