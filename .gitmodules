@@ -1,3 +1,21 @@
 [submodule "embed.rs/themes/hemingway"]
 	path = embed.rs/themes/hemingway
 	url = https://github.com/tanksuzuki/hemingway.git
+[submodule "embed.rs/themes/hyde"]
+	path = embed.rs/themes/hyde
+	url = https://github.com/spf13/hyde.git
+[submodule "embed.rs/themes/hugo-redlounge"]
+	path = embed.rs/themes/hugo-redlounge
+	url = https://github.com/tmaiaroto/hugo-redlounge
+[submodule "embed.rs/themes/ghostwriter"]
+	path = embed.rs/themes/ghostwriter
+	url = https://github.com/jbub/ghostwriter
+[submodule "embed.rs/themes/hugo-theme-learn"]
+	path = embed.rs/themes/hugo-theme-learn
+	url = https://github.com/matcornic/hugo-theme-learn.git
+[submodule "embed.rs/themes/hugo-icarus-theme"]
+	path = embed.rs/themes/hugo-icarus-theme
+	url = https://github.com/digitalcraftsman/hugo-icarus-theme.git
+[submodule "embed.rs/themes/strange-case"]
+	path = embed.rs/themes/strange-case
+	url = https://github.com/ExchangeRate-API/strange-case.git
