@@ -60,34 +60,66 @@ brand primary: #ec6b1d;
 pre, code {
   font-family: Source Code Pro, monospace;
   font-weight: 400;
+  font-size: 16px;
 }
 
-h1, h2, h3, h4, h5, h6, .headline-font, .logo {
-  font-family: Arvo, serif;
-  font-weight: bold;
+h1, h2, h3, h4, h5, h6, .headline-font {
+  font-family: Open Sans, sans-serif;
+  font-weight: 700;
   font-size: 36px;
   line-height: 48px;
 }
 
 body, div {
-  font-family: Scope One, serif;
-  font-weight: 400;
+  font-family: Lato, serif;
+  font-weight: 300;
   font-size: 18px;
   line-height: 24px;
 }
 
 .logo {
+  font-family: Arvo;
   font-size: 48px;
   text-align: center;
+  font-weight: 700;
 }
 
 .accent {
   color: #ec6b1d;
 }
 
-.container {
-
+.main {
+  margin-left: 260px;
+  padding-top: 36px;
+  padding-bottom: 72px;
 }
+
+.article {
+  margin-left: 72px;
+  max-width: 628px;
+}
+
+.article .info {
+  font-size: 14px;
+  margin-bottom: 18px;
+}
+
+p, ul, ol {
+  margin-bottom: 18px;
+}
+
+p.teaser {
+  font-style: italic;
+}
+
+.article ul li {
+  list-style-type: disc;
+}
+
+.article ol li {
+  list-style-type: decimal;
+}
+
 
 .sidebar {
   width: 260px;
@@ -127,4 +159,11 @@ body, div {
   height: 36px;
   margin-bottom: 18px;
   margin-top: 18px;
+}
+
+pre {
+  border-top: 1px solid #eeeeee;
+  border-bottom: 1px solid #eeeeee;
+  margin-top: 18px;
+  margin-bottom: 18px;
 }
