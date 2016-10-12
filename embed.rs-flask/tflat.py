@@ -1,7 +1,7 @@
 import os
 import json
 
-from tinydb import TinyDB, Query, Storage
+from tinydb import Storage
 
 
 class FlatDocumentStorage(Storage):
@@ -19,33 +19,83 @@ class FlatDocumentStorage(Storage):
         for table_name in os.listdir(self.path):
             tbl = {}
             tbl_path = os.path.join(self.path, table_name)
-            for doc_name in os.listdir(tbl_path):
-                doc_path = os.path.join(tbl_path, doc_name)
+            for (dir_path, dir_names, fns) in os.walk(tbl_path):
+                # determine table-relative path components
+                rel_path = os.path.relpath(dir_path, tbl_path)
 
-                with open(doc_path) as inp:
-                    doc, big_field = self.read_doc(inp)
+                components = [] if rel_path == '.' else os.path.split(
+                    rel_path)[1:]
+                if not fns:
+                    continue
 
-                if big_field is not None:
-                    doc[self.big_field] = big_field
+                for fn in fns:
+                    doc_path = os.path.join(tbl_path, dir_path, fn)
+                    doc_name = '/'.join(components + (fn, ))
 
-                doc[self.pkey_field] = doc_name
-                eid = hash(doc[self.pkey_field])
+                    with open(doc_path) as inp:
+                        doc, big_field = self.read_doc(inp)
 
-                tbl[eid] = doc
+                    if big_field is not None:
+                        doc[self.big_field] = big_field
+
+                    doc[self.pkey_field] = doc_name
+                    eid = hash(doc[self.pkey_field])
+
+                    tbl[eid] = doc
             tables[table_name] = tbl
 
         return tables
 
     def read_doc(self, inp):
-        buf = inp.read()
-        if buf[-1] == '\n':
-            buf = buf[:-1]
-        parts = buf.split('\n+++\n\n', 1)
-        header = json.loads(parts[0])
+        json_lines = []
+        body_lines = []
 
-        big_field = None
-        if len(parts) == 2:
-            big_field = parts[1] or None
+        # valid states are: pre, json, skip, body
+        state = 'pre'
+
+        for line in inp.read().splitlines():
+            if state == 'pre':
+                if not line:
+                    # skip empty lines at the start
+                    continue
+
+                if line != '---':
+                    raise ValueError('Data file does not start with `---`')
+
+                state = 'json'
+                continue
+
+            if state == 'json':
+                if line == '---':
+                    state = 'skip'
+                    continue
+
+                json_lines.append(line)
+                continue
+
+            if state == 'skip':
+                # skip whitespace after ---
+
+                if not line.strip():
+                    continue
+
+                state = 'body'
+                # fall through to body:
+
+            if state == 'body':
+                body_lines.append(line)
+                continue
+
+            raise RuntimeError('unreachable')
+
+        try:
+            json_raw = '\n'.join(json_lines)
+            header = json.loads(json_raw)
+        except ValueError as e:
+            raise ValueError(
+                'Could not decode JSON {!r}'.format(json_raw)) from e
+
+        big_field = None if not body_lines else '\n'.join(body_lines)
 
         return header, big_field
 
@@ -83,12 +133,3 @@ class FlatDocumentStorage(Storage):
         if big_field is not None:
             out.write(big_field)
         out.write('\n')
-
-
-if __name__ == '__main__':
-    User = Query()
-
-    db = TinyDB('ffdb', 'name', 'body', storage=FlatDocumentStorage)
-    # db.insert({'name': 'John', 'age': 22})
-
-    print(db.search(~(User.name == 'JohnX')))
