@@ -1,7 +1,10 @@
+#!/usr/bin/env python
 import os
 
 import arrow
+import click
 from flask import Flask, render_template
+from flask_frozen import Freezer
 from flask_mistune import Mistune
 import highlight
 import tflat
@@ -123,6 +126,7 @@ db.bind((site_db(os.path.join(os.path.dirname(__file__), 'content'))))
 
 # add extensions
 Mistune(app, renderer=highlight.HighlightRenderer())
+freezer = Freezer(app)
 
 
 @app.route('/articles/')
@@ -131,15 +135,29 @@ def list_articles():
     return render_template('articles.html', articles=Article.all())
 
 
-@app.route('/articles/<path:slug>')
+@app.route('/articles/<path:slug>/')
 def show_article(slug):
     return render_template('article.html', article=Article.get(slug + '.md'))
 
 
-@app.route('/about')
+@app.route('/about/')
 def about():
     return render_template('page.html', page=Page.get('about.md'))
 
 
-if __name__ == '__main__':
+cli = click.Group()
+
+
+@cli.command()
+def run():
     app.run(debug=True)
+
+
+@cli.command()
+def freeze():
+    app.config['FREEZER_RELATIVE_URLS'] = True
+    freezer.freeze()
+
+
+if __name__ == '__main__':
+    cli()

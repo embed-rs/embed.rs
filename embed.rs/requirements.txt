@@ -3,3 +3,5 @@ tinydb
 flask-mistune
 pygments
 arrow
+frozen-flask
+click
