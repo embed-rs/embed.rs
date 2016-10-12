@@ -10,7 +10,7 @@
       {%- if not loop.last %}, {% endif %}
     {% endfor %}
     &middot; {{ a.date }}</div>
-  {{ a.content }}
+  {{ a.content|markdown }}
 </div>
 {% endfor %}
 {% endblock %}
