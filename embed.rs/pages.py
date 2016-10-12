@@ -121,12 +121,8 @@ db.bind((site_db(os.path.join(os.path.dirname(__file__), 'content'))))
 Mistune(app, renderer=highlight.HighlightRenderer())
 
 
-@app.route('/')
-def hello_world():
-    return render_template('base.html')
-
-
 @app.route('/articles/')
+@app.route('/')
 def list_articles():
     return render_template('articles.html', articles=Article.all())
 
