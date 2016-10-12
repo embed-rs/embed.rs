@@ -19,18 +19,24 @@ class TinyORM(object):
 
             @classmethod
             def search(cls, *args, **kwargs):
-                return cls._metadata._get_table(cls._table).search(*args,
-                                                                   **kwargs)
+                return [cls.from_record(r)
+                        for r in cls._metadata._get_table(cls._table).search(
+                            *args, **kwargs)]
 
             @classmethod
             def all(cls):
-                return [cls.from_record(rec.items())
+                return [cls.from_record(rec)
                         for rec in cls._metadata._get_table(cls._table).all()]
+
+            @classmethod
+            def get(cls, slug):
+                Q = Query()
+                return cls.search(Q.slug == slug)[0]
 
             @classmethod
             def from_record(cls, rec):
                 item = cls()
-                for k, v in rec:
+                for k, v in rec.items():
                     if k in cls._schema:
                         setattr(item, k, cls._schema[k].deserialize(v))
                     else:
@@ -81,6 +87,10 @@ class Article(db.Model):
     _schema = {'date': Timestamp()}
 
     @property
+    def url_slug(self):
+        return self.slug.rstrip('.md')
+
+    @property
     def authors(self):
         A = Query()
         return Author.search(A.slug == 'mbr')
@@ -108,12 +118,17 @@ Mistune(app, renderer=highlight.HighlightRenderer())
 
 @app.route('/')
 def hello_world():
-    return render_template("base.html")
+    return render_template('base.html')
 
 
-@app.route('/articles')
+@app.route('/articles/')
 def list_articles():
-    return render_template("articles.html", articles=Article.all())
+    return render_template('articles.html', articles=Article.all())
+
+
+@app.route('/articles/<path:slug>')
+def show_article(slug):
+    return render_template('article.html', article=Article.get(slug + '.md'))
 
 
 if __name__ == '__main__':

@@ -1,16 +1,17 @@
 {% extends "base.html" %}
 
 {% block content %}
-{% for a in articles %}
+{% for article in articles %}
 <div class="article">
-  <h1>{{ a.title }}</h1>
+  <h1><a href="{{url_for('.show_article', slug=article.url_slug)}}">{{ article.title }}</a></h1>
   <div class="info">
-    by {% for author in a.authors %}
+    by {% for author in article.authors %}
       <a href="{{ author.link }}" title="about {{ author.full_name }}">{{ author.full_name }}</a>
       {%- if not loop.last %}, {% endif %}
     {% endfor %}
-    &middot; {{ (a.date|arrow).format('MMMM DD, YYYY') }}</div>
-  <p class="teaser">{{ a.teaser if a.teaser else a.content|markdown|striptags|truncate }}</p>
+    &middot; {{ (article.date|arrow).format('MMMM DD, YYYY') }}</div>
+  <p class="teaser">{{ article.teaser if article.teaser else article.content|markdown|striptags|truncate }}</p>
+  <p class="read-article"><a href="{{url_for('.show_article', slug=article.url_slug)}}">[ read more ]</a></p>
 </div>
 {% endfor %}
 {% endblock %}
