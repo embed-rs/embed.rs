@@ -69,6 +69,12 @@ class Timestamp(AttributeField):
 class Author(db.Model):
     _table = 'authors'
 
+    @property
+    def link(self):
+        # currently, we juts return the homepage. later on, a bio page could
+        # be added here
+        return self.homepage
+
 
 class Article(db.Model):
     _table = 'articles'

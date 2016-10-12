@@ -1,7 +1,7 @@
 ---
 {
   "full_name": "Marc Brinkmann",
-  "link": "https://github.com/mbr",
+  "homepage": "https://github.com/mbr",
   "short_bio": "Marc has been developing embedded soft- and firmware in Rust as a freelancer since 2015 and is a CS student on the side. If you use an unchecked `unwrap()` inside a library, he *will* come and find you."
 }
 ---
