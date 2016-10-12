@@ -2,6 +2,15 @@
 date = "2016-10-10T17:09:35+02:00"
 title = "Exploring ARM inline assembly in Rust"
 draft = true
+author = "Marc Brinkmann"
+author_link = "https://github.com/mbr"
+tags = [
+  "rust",
+  "embedded",
+  "assembly",
+  "llvm",
+  "arm"
+]
 
 +++
 
@@ -34,7 +43,7 @@ The different (human-readable) assembly syntaxes can cause a lot of confusion, a
 mov    eax, 1fh
 ```
 
-in Intel syntax and 
+in Intel syntax and
 
 ```attasm
 movl   $0x1f, %eax
