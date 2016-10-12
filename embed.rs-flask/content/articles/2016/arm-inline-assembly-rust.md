@@ -222,7 +222,7 @@ This is known as *clobbering* --- by writing to registers without letting the co
 To remedy, we can give a comma-separated list of registers that the assembly-code will use and the compiler will take care to structure all of its own calculations in a way that conflicts are avoided:
 
 
-```
+```rust
 asm!("mov r0, #5
       mov r1, #6
       mov r2, #15
@@ -240,7 +240,7 @@ asm!("mov r0, #5
 
 Looking at the disassembly output again, we see that the contents of `r0` are saved on the stack before our code runs and restored after:
 
-```asm
+```
     3778:    e58d0008     str    r0, [sp, #8]
     ...
     379c:    e59d0008     ldr    r0, [sp, #8]
