@@ -15,9 +15,9 @@
 }
 ---
 
-Inline assembly in modern languages is easily forgotten in day-to-day programming; its use has been diminished by having excellent compilers that produce equivalent or better code than what most programmers can hand-optimize. Outside of the field of optimization there are still some legitimate reasons to write a couple of instructions of assembly even then: Accessing CPU features that are platform-specific or simply not covered by compiler or library vendors.
+Inline assembly in modern languages is easily forgotten in day-to-day programming. Excellent compilers produce code that is equivalent or better than what most programmers can hand-optimize. But outside of the field of optimization there are still some legitimate reasons to write assembly: Accessing CPU features that are platform-specific or simply not covered by compiler or library vendors.
 
-This article gives a short introduction into inline assembly in Rust. It focuses on embedded development, more specifically the [ARM](https://en.wikipedia.org/wiki/ARM_architecture) architecture, which has a good reputation for being clear and also a lot of application in the embedded world, where one is much more likely to find oneself reaching for an assembler than on the desktop world of [x86-64](https://en.wikipedia.org/wiki/X86-64).
+This article gives a short introduction into inline assembly in Rust. It focuses on embedded development, more specifically the [ARM](https://en.wikipedia.org/wiki/ARM_architecture) architecture, which has a good reputation for being clear to understand. It also sees a lot of application in the embedded world, where one is much more likely to find oneself reaching for an assembler than on the domain of [x86-64](https://en.wikipedia.org/wiki/X86-64).
 
 
 What is assembly?
@@ -29,7 +29,7 @@ Compiling a valid Rust program ultimately yields a binary than can be executed. 
 
 The red section happens inside the Rust compiler which turns Rust source code into [LLVM](http://llvm.org/) *intermediate representation* (IR). The LLVM IR can be thought of as language-agnostic; C-code compiled with [clang](http://clang.llvm.org/) will end up as LLVM IR the same way as Rust code does at one point during compilation. After generation, the intermediate representation will be optimized and turned into the machine code that ends up inside the final binary.
 
-Binary or numerical machine code refers to a set of instructions the target CPU can directly execute, with each instruction being coded numerically; e.g. adding two operands in ARM assembly is represented by the [opcode](https://en.wikipedia.org/wiki/Opcode) `0100`. Since these are hard to read, a text-based representation is avaiablable: [Assembly code](https://en.wikipedia.org/wiki/Assembly_language). Addition becomes `ADD` instead of
+Binary or numerical machine code refers to a set of instructions the target CPU can directly execute, with each instruction being coded numerically; e.g. adding two operands in ARM assembly is represented by the [opcode](https://en.wikipedia.org/wiki/Opcode) `0b0100`. Since these are hard to read, a text-based representation is avaiablable: [Assembly code](https://en.wikipedia.org/wiki/Assembly_language). Addition becomes `ADD` instead of
 `0100` and operands can be specified a little easier as well. Some platform-dependant exceptions aside, assembly code maps onto binary machine instructions in a 1:1 manner.
 
 Modern, high-level languages exist primarily to free the programmer from having to hand-write (and optimize) assembly code for their machine. Since gaining direct access to assembly instructions is rarely worth losing the ability to write high-level code, **[inline assembly](https://en.wikipedia.org/wiki/Inline_assembler)** can be used to write small fragments of assembly embedded in the language of choice.
