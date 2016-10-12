@@ -57,24 +57,25 @@ brand primary: #ec6b1d;
 
 */
 
-pre, code {
+pre {
   font-family: Source Code Pro, monospace;
   font-weight: 400;
-  font-size: 16px;
+  font-size: 14px;
 }
 
 h1, h2, h3, h4, h5, h6, .headline-font {
   font-family: Open Sans, sans-serif;
   font-weight: 700;
   font-size: 36px;
-  line-height: 48px;
+  line-height: 54px;
+  margin-top: 36px;
 }
 
 body, div {
   font-family: Lato, serif;
   font-weight: 300;
   font-size: 18px;
-  line-height: 24px;
+  line-height: 27px;
 }
 
 .logo {
@@ -166,4 +167,6 @@ pre {
   border-bottom: 1px solid #eeeeee;
   margin-top: 18px;
   margin-bottom: 18px;
+  white-space: pre-wrap;
+
 }
