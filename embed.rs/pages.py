@@ -155,7 +155,8 @@ def run():
 
 @cli.command()
 def freeze():
-    app.config['FREEZER_RELATIVE_URLS'] = True
+    # enable below to create a zippable version
+    # app.config['FREEZER_RELATIVE_URLS'] = True
     freezer.freeze()
 
 
