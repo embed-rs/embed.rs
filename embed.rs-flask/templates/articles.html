@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% for a in articles %}
+<div class="article">
+  <h1>{{ a.title }}</h1>
+  <div class="info">
+    by {% for name, link in a.authors %}
+      <a href="{{ link }}" title="about {{ name }}">{{ name }}</a>
+      {%- if not loop.last %}, {% endif %}
+    {% endfor %}
+    &middot; {{ a.date }}</div>
+  {{ a.content }}
+</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+  <title>{{ title }} - embed.rs</title>
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans:700|Arvo:700|Lato:300,300i,700,700i|Source+Code+Pro:400,700" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/two.css') }}">
+  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.7.0/styles/github-gist.min.css">
+</head>
+<body>
+<div class="container">
+  <div class="sidebar">
+    <div><span class="logo">embed<span class="accent">.rs</span></span><br>
+    <span class="slogan">Rust embedded development</span>
+    </div>
+    <ul class="menu">
+      <li><a href="#">/home</a></li>
+      <li><a href="#">/articles</a></li>
+      <li><a href="#">/
+      about</a></li>
+    </ul>
+    <div class="gitlink last"><a href="https://github.com/embed-rs">
+      <img src="{{ url_for('.static', filename='img/github_light.png') }}">
+    </a></div>
+  </div>
+  <div class="main">
+  {% block content %}
+    missing content
+  {% endblock %}
+  </div> <!-- /main -->
+</div> <!-- /container -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.7.0/highlight.min.js"></script>
+<script type="text/javascript" async>hljs.initHighlightingOnLoad();</script>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+});
+</script>
+<script type="text/javascript" async
+  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_CHTML"></script>
+</body>
+</html>
