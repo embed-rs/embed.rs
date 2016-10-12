@@ -1,11 +1,8 @@
 ---
 {
   "title": "A test article",
-  "authors": [
-    ["Marc Brinkmann", "https://github.com/mbr"],
-    ["Someone Else", "http://example.com"]
-  ],
-  "date": "201610121458"
+  "author_ids": ["mbr"],
+  "date": "2016-10-12 14:58+02:00"
 }
 ---
 

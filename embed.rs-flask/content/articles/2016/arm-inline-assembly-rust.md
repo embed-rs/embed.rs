@@ -2,9 +2,7 @@
 {
   "date": "2016-10-10T17:09:35+02:00",
   "title": "Exploring ARM inline assembly in Rust",
-  "authors": [
-    ["Marc Brinkmann", "https://github.com/mbr"]
-  ],
+  "author_ids": [ "mbr" ],
   "tags": [
     "rust",
     "embedded",

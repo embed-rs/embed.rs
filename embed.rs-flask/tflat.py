@@ -30,7 +30,7 @@ class FlatDocumentStorage(Storage):
 
                 for fn in fns:
                     doc_path = os.path.join(tbl_path, dir_path, fn)
-                    doc_name = '/'.join(components + (fn, ))
+                    doc_name = '/'.join(tuple(components) + (fn, ))
 
                     with open(doc_path) as inp:
                         doc, big_field = self.read_doc(inp)

@@ -2,3 +2,4 @@ flask
 tinydb
 flask-mistune
 pygments
+arrow
