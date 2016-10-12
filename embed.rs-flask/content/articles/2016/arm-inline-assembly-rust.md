@@ -25,7 +25,7 @@ What is assembly?
 
 Compiling a valid Rust program ultimately yields a binary than can be executed. The process of generating one includes multiple steps that are hidden from the programmer:
 
-![Rust source to machine code. See https://blog.rust-lang.org/2016/04/19/MIR.html for more details](/post/arm-inline-assembly-rust_01.svg)
+![Rust source to machine code. See https://blog.rust-lang.org/2016/04/19/MIR.html for more details](arm-inline-assembly-rust_01.svg)
 
 The red section happens inside the Rust compiler which turns Rust source code into [LLVM](http://llvm.org/) *intermediate representation* (IR). The LLVM IR can be thought of as language-agnostic; C-code compiled with [clang](http://clang.llvm.org/) will end up as LLVM IR the same way as Rust code does at one point during compilation. After generation, the intermediate representation will be optimized and turned into the machine code that ends up inside the final binary.
 
