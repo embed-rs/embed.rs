@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="article">
+  <h1><a href="{{url_for('.show_article', slug=article.url_slug)}}">{{ article.title }}</a></h1>
+  <div class="info">
+    by {% for author in article.authors %}
+      <a href="{{ author.link }}" title="about {{ author.full_name }}">{{ author.full_name }}</a>
+      {%- if not loop.last %}, {% endif %}
+    {% endfor %}
+    &middot; {{ (article.date|arrow).format('MMMM DD, YYYY') }}</div>
+  {{ article.teaser if article.teaser else article.content|markdown }}
+</div>
+{% endblock %}
