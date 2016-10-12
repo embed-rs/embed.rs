@@ -23,7 +23,8 @@ and a code-example
 
 ```rust
 fn main() {
-
+  let foo: u32 = 42;
+  println!("The answer: {}", foo);
 }
 ```
 
