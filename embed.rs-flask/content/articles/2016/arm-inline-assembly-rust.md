@@ -3,7 +3,7 @@
   "date": "2016-10-10T17:09:35+02:00",
   "title": "Exploring ARM inline assembly in Rust",
   "author_ids": [ "mbr" ],
-  "contributor_ids": [ "phil-opp" ],
+  "contributor_ids": [ "phil-opp", "oli_obk" ],
   "tags": [
     "rust",
     "embedded",

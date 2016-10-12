@@ -1,13 +1,20 @@
 {% extends "base.html" %}
 
+{% macro writer_list(writers) %}
+{% for writer in writers|sort(attribute="full_name") %}
+      <a href="{{ writer.link }}" title="about {{ writer.full_name }}">{{ writer.full_name }}</a>
+      {%- if not loop.last %}, {% endif %}
+{% endfor %}
+{% endmacro %}
+
 {% block content %}
 <div class="article">
   <h1><a href="{{url_for('.show_article', slug=article.url_slug)}}">{{ article.title }}</a></h1>
   <div class="info">
-    by {% for author in article.authors %}
-      <a href="{{ author.link }}" title="about {{ author.full_name }}">{{ author.full_name }}</a>
-      {%- if not loop.last %}, {% endif %}
-    {% endfor %}
+    by {{ writer_list(article.authors) }}
+    {%- if article.contributors %}
+    with contributions from {{ writer_list(article.contributors) }}
+    {% endif %}
     &middot; {{ (article.date|arrow).format('MMMM DD, YYYY') }}</div>
   {{ article.content|markdown }}
 

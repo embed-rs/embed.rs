@@ -93,7 +93,12 @@ class Article(db.Model):
     @property
     def authors(self):
         A = Query()
-        return Author.search(A.slug == 'mbr')
+        return Author.search(A.slug.test(lambda x: x in self.author_ids))
+
+    @property
+    def contributors(self):
+        A = Query()
+        return Author.search(A.slug.test(lambda x: x in self.contributor_ids))
 
 
 def site_db(path):
