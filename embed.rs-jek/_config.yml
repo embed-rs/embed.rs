@@ -1,0 +1,12 @@
+# Site settings
+title: embed.rs
+# email: your-email@domain.com
+description: "embed.rs is a community around embedded development using Rust on bare-metal MCUs"
+baseurl: ""
+url: "http://embed.rs"
+# twitter_username: jekyllrb
+github_username:  embed-rs
+
+# Build settings
+markdown: kramdown
+permalink: pretty
