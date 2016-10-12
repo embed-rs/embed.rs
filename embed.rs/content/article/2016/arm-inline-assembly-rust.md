@@ -1,9 +1,27 @@
-+++
+{
+  "date": "2016-10-10T17:09:35+02:00",
+  "title": "Exploring ARM inline assembly in Rust",
+  "draft": true,
+  "authors": [
+    {"name": "Marc Brinkmann", "url": "https://github.com/mbr"}
+  ],
+  "tags": [
+    "rust",
+    "embedded",
+    "assembly",
+    "llvm",
+    "arm"
+  ]
+
+}
+
+<!-- +++
 date = "2016-10-10T17:09:35+02:00"
 title = "Exploring ARM inline assembly in Rust"
 draft = true
-author = "Marc Brinkmann"
-author_link = "https://github.com/mbr"
+authors = [
+  ["Marc Brinkmann", "https://github.com/mbr"]
+]
 tags = [
   "rust",
   "embedded",
@@ -11,8 +29,7 @@ tags = [
   "llvm",
   "arm"
 ]
-
-+++
++++ -->
 
 Inline assembly in modern languages is easily forgotten in day-to-day programming; its use has been diminished by having excellent compilers that produce equivalent or better code than what most programmers can hand-optimize. Outside of the field of optimization there are still some legitimate reasons to write a couple of instructions of assembly even then: Accessing CPU features that are platform-specific or simply not covered by compiler or library vendors.
 

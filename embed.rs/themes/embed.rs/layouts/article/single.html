@@ -2,7 +2,11 @@
 
 <div class="article">
   <h1>{{ .Title }}</h1>
-  <div class="info">by <a href="{{ .Params.author_link}}" title="about {{ .Params.author }}0">{{ .Params.author }}</a> &middot; {{ .Date.Format "January 2, 2006" }}</div>
+  <div class="info">
+    by {{ range .Params.authors }}
+    <a href="{{ .link }}" title="about {{ .name }}">{{ .name }}</a>,
+    {{ end }}
+    &middot; {{ .Date.Format "January 2, 2006" }}</div>
   {{ .Content }}
 </div>
 
