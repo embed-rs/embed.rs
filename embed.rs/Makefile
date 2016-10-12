@@ -1,6 +1,7 @@
 build:
 	rm -rf build
 	./pages.py freeze
+	echo embed.rs > build/CNAME
 
 gh-pages: build
 	gittar -r ../ -b gh-pages 'file:build/*'
