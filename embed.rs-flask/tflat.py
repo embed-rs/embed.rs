@@ -5,10 +5,11 @@ from tinydb import TinyDB, Query, Storage
 
 
 class FlatDocumentStorage(Storage):
-    def __init__(self, path, pkey_field, big_field=None):
+    def __init__(self, path, pkey_field, big_field=None, read_only=False):
         self.path = path
         self.pkey_field = pkey_field
         self.big_field = big_field
+        self.read_only = read_only
 
     def read(self):
         if not os.path.exists(self.path):
@@ -49,6 +50,9 @@ class FlatDocumentStorage(Storage):
         return header, big_field
 
     def write(self, data):
+        if self.read_only:
+            return
+
         # create database dir
         if not os.path.exists(self.path):
             os.mkdir(self.path)
