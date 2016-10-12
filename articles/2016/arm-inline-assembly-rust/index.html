@@ -1,0 +1,361 @@
+<!doctype html>
+<html>
+<head>
+  <title> - embed.rs</title>
+  <link rel="stylesheet" type="text/css" href="../../../static/css/fonts.css">
+  <link rel="stylesheet" type="text/css" href="../../../static/css/two.css">
+  <link rel="stylesheet" type="text/css" href="../../../static/css/github.css">
+</head>
+<body>
+<div class="container">
+  <div class="sidebar">
+    <div><span class="logo">embed<span class="accent">.rs</span></span><br>
+    <span class="slogan">Rust embedded development</span>
+    </div>
+    <ul class="menu">
+      <li><a href="../../../index.html">/articles</a></li>
+      <li><a href="../../../about/index.html">/about</a></li>
+    </ul>
+    <div class="gitlink last"><a href="https://github.com/embed-rs">
+      <img src="../../../static/img/github_light.png">
+    </a></div>
+  </div>
+  <div class="main">
+  
+<div class="article">
+  <h1><a href="index.html">Exploring ARM inline assembly in Rust</a></h1>
+  <div class="info">
+    by 
+
+      <a href="https://github.com/mbr" title="about Marc Brinkmann">Marc Brinkmann</a>
+
+
+    with contributions from 
+
+      <a href="https://github.com/oli_obk" title="about Oliver Schneider">Oliver Schneider</a>, 
+
+      <a href="https://github.com/phil-opp" title="about Philip Oppermann">Philip Oppermann</a>
+
+
+    
+    &middot; October 10, 2016</div>
+  <p>Inline assembly in modern languages is easily forgotten in day-to-day programming; its use has been diminished by having excellent compilers that produce equivalent or better code than what most programmers can hand-optimize. Outside of the field of optimization there are still some legitimate reasons to write a couple of instructions of assembly even then: Accessing CPU features that are platform-specific or simply not covered by compiler or library vendors.</p>
+<p>This article gives a short introduction into inline assembly in Rust. It focuses on embedded development, more specifically the <a href="https://en.wikipedia.org/wiki/ARM_architecture">ARM</a> architecture, which has a good reputation for being clear and also a lot of application in the embedded world, where one is much more likely to find oneself reaching for an assembler than on the desktop world of <a href="https://en.wikipedia.org/wiki/X86-64">x86-64</a>.</p>
+<h1>What is assembly?</h1>
+<p>Compiling a valid Rust program ultimately yields a binary than can be executed. The process of generating one includes multiple steps that are hidden from the programmer:</p>
+<p><img src="/static/content/arm-inline-assembly-rust_01.svg" alt="Rust source to machine code. See https://blog.rust-lang.org/2016/04/19/MIR.html for more details"></p>
+<p>The red section happens inside the Rust compiler which turns Rust source code into <a href="http://llvm.org/">LLVM</a> <em>intermediate representation</em> (IR). The LLVM IR can be thought of as language-agnostic; C-code compiled with <a href="http://clang.llvm.org/">clang</a> will end up as LLVM IR the same way as Rust code does at one point during compilation. After generation, the intermediate representation will be optimized and turned into the machine code that ends up inside the final binary.</p>
+<p>Binary or numerical machine code refers to a set of instructions the target CPU can directly execute, with each instruction being coded numerically; e.g. adding two operands in ARM assembly is represented by the <a href="https://en.wikipedia.org/wiki/Opcode">opcode</a> <code>0100</code>. Since these are hard to read, a text-based representation is avaiablable: <a href="https://en.wikipedia.org/wiki/Assembly_language">Assembly code</a>. Addition becomes <code>ADD</code> instead of
+<code>0100</code> and operands can be specified a little easier as well. Some platform-dependant exceptions aside, assembly code maps onto binary machine instructions in a 1:1 manner.</p>
+<p>Modern, high-level languages exist primarily to free the programmer from having to hand-write (and optimize) assembly code for their machine. Since gaining direct access to assembly instructions is rarely worth losing the ability to write high-level code, <strong><a href="https://en.wikipedia.org/wiki/Inline_assembler">inline assembly</a></strong> can be used to write small fragments of assembly embedded in the language of choice.</p>
+<h2>Syntax</h2>
+<p>The different (human-readable) assembly syntaxes can cause a lot of confusion, as they change not only the manner in which different values are written but also the order in which operands are given. When writing x86 assembly, there are two widely used variations of assembly syntax available: <a href="http://www.imada.sdu.dk/Courses/DM18/Litteratur/IntelnATT.htm">Intel and AT&amp;T</a>. Given the task of writing the value <code>0x1F</code> (31 in decimal) into the <code>eax</code> register, a programmer would have to write</p>
+<div class="highlight"><pre><span></span><span class="nf">mov</span>    <span class="nb">eax</span><span class="p">,</span> <span class="mh">1fh</span>
+</pre></div>
+<p>in Intel syntax and</p>
+<div class="highlight"><pre><span></span><span class="nf">movl</span>   <span class="no">$0x1f</span><span class="p">,</span> <span class="nv">%eax</span>
+</pre></div>
+<p>in AT&amp;T syntax.</p>
+<p>Of note is that not only are the instructions named slightly different ---
+<code>mov</code> vs <code>movl</code> --- but values prefixed in AT&amp;T. Even specifying hexadecimal numbers works different between these two. To complete the confusion, argument order is reversed as well: The destination (<code>eax</code>) is specified first in Intel syntax while being last in AT&amp;T syntax.</p>
+<p>Fortunately in this article we will not have to chose either one. ARM assembly usually uses a syntax different from both of these and manages to be more readable:</p>
+<div class="highlight"><pre><span></span><span class="nf">mov</span>    <span class="no">r0</span><span class="p">,</span> <span class="c">#0x1f</span>
+</pre></div>
+<p>General purpose registers in ARM assembly are named <code>r0</code> through <code>r16</code> (or higher/lower) instead of <code>eax</code>, ... and only literal values (called
+<em>immediates</em>) are prefixed with a hash (<code>#</code>).</p>
+<p>An important fact to remember is that the assembly syntax changes depending on the platform and compiler backend. Inline assembly in Rust on the ARM platform uses the ARM-syntax mentioned above.</p>
+<h1>The example program</h1>
+<p>The following program solves the simple problem of finding the midway point between two other points that will be stored in <code>r0</code> through <code>r3</code>. More precisely, given two vectors $\mathbf{A} := \begin{bmatrix} x_1 \\ y_1 \end{bmatrix}$ and $\mathbf{B} := \begin{bmatrix} x_2 \\ y_2 \end{bmatrix}$, we want to calculate the midpoint vector $\mathbf{M} := A + \frac{(\mathbf{B}-\mathbf{A})}{2} = \frac{\mathbf{A}+\mathbf{B}}{2}$.</p>
+<p>Our initial algorithm is simple: First, we store all values in registers,</p>
+<p>(Notation: $a \leftarrow b$ is the same as "in $a$, store $b$")</p>
+<ol start="1">
+<li>$r_0 \leftarrow x_1$</li>
+<li>$r_1 \leftarrow y_1$</li>
+<li>$r_2 \leftarrow x_2$</li>
+<li>$r_3 \leftarrow y_2$</li>
+</ol><p>before adding the components together</p>
+<ol start="5">
+<li>$r_0 \leftarrow r_0 + r_2$</li>
+<li>$r_1 \leftarrow r_1 + r_3$</li>
+</ol><p>and diving each component by two</p>
+<ol start="7">
+<li>$r_0 \leftarrow \frac{r_0}{2}$</li>
+<li>$r_1 \leftarrow \frac{r_1}{2}$</li>
+</ol><p>This translates directly into assembly code:</p>
+<div class="highlight"><pre><span></span><span class="err">;</span>      <span class="nf">we</span> <span class="no">are</span> <span class="no">looking</span> <span class="no">for</span> <span class="no">the</span> <span class="no">midpoint-pixel</span> <span class="no">between</span> <span class="no">two</span> <span class="no">points</span>
+<span class="err">;</span>      <span class="nf">A</span> <span class="p">:</span><span class="err">=</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span> <span class="no">and</span> <span class="no">B</span> <span class="p">:</span><span class="err">=</span> <span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">27</span><span class="p">)</span>
+<span class="err">;</span>      <span class="nf">expected</span> <span class="no">result</span> <span class="no">M</span><span class="p">:</span> <span class="err">=</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+
+<span class="err">;</span>      <span class="nf">store</span> <span class="no">A</span> <span class="no">in</span> <span class="no">r0</span> <span class="no">and</span> <span class="no">r1</span>
+<span class="nf">mov</span>    <span class="no">r0</span><span class="p">,</span> <span class="c">#5</span>
+<span class="nf">mov</span>    <span class="no">r1</span><span class="p">,</span> <span class="c">#6</span>
+
+<span class="err">;</span>      <span class="nf">store</span> <span class="no">B</span> <span class="no">in</span> <span class="no">r2</span> <span class="no">and</span> <span class="no">r3</span>
+<span class="nf">mov</span>    <span class="no">r2</span><span class="p">,</span> <span class="c">#15</span>
+<span class="nf">mov</span>    <span class="no">r3</span><span class="p">,</span> <span class="c">#27</span>
+
+<span class="err">;</span>      <span class="nf">add</span> <span class="no">both</span> <span class="no">together</span>
+<span class="nf">add</span>    <span class="no">r0</span><span class="p">,</span> <span class="no">r0</span><span class="p">,</span> <span class="no">r2</span>
+<span class="nf">add</span>    <span class="no">r1</span><span class="p">,</span> <span class="no">r1</span><span class="p">,</span> <span class="no">r3</span>
+
+<span class="err">;</span>      <span class="nf">divide</span> <span class="no">by</span> <span class="no">two.</span> <span class="no">since</span> <span class="no">there</span> <span class="no">is</span> <span class="no">no</span> <span class="no">division</span> <span class="no">opcode</span> <span class="no">on</span> <span class="no">many</span> <span class="no">ARMs</span><span class="p">,</span>
+<span class="err">;</span>      <span class="nf">we</span> <span class="no">bitshift</span> <span class="no">to</span> <span class="no">the</span> <span class="no">right</span>
+<span class="nf">asr</span>    <span class="no">r0</span><span class="p">,</span> <span class="no">r0</span><span class="p">,</span> <span class="c">#1</span>
+<span class="nf">asr</span>    <span class="no">r1</span><span class="p">,</span> <span class="no">r1</span><span class="p">,</span> <span class="c">#1</span>
+
+<span class="err">;</span>      <span class="nf">the</span> <span class="no">end</span> <span class="no">result</span> <span class="no">of</span> <span class="no">M</span> <span class="p">:</span><span class="err">=</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span> <span class="no">is</span> <span class="no">now</span> <span class="no">in</span> <span class="no">r0</span><span class="p">,</span> <span class="no">r1</span>
+</pre></div>
+<p>The assembly code above will be used without comments further down. A fun way to try it out is using <a href="http://salmanarif.bitbucket.org/visual">Salman Arif's VisUAL</a> ARM emulator.</p>
+<h1>Running Rust ARM code on x86</h1>
+<p>If you are not writing code on a <a href="https://www.raspberrypi.org/">Raspberry Pi</a> the chance that you are already working on an ARM machine are pretty slim. To keep things simple, we will write the example on an x86 machine using <a href="https://en.wikipedia.org/wiki/Cross_compiler">cross-compilation</a>. First, we use <a href="https://www.rustup.rs/">rustup</a> to install the necessary <code>arm-unknown-linux-gnueabihf</code>target:</p>
+<div class="highlight"><pre><span></span>$ rustup target install arm-unknown-linux-gnueabihf
+</pre></div>
+<p>Now we can create a binary using Cargo with the following <code>main.rs</code></p>
+<div class="highlight"><pre><span></span><span class="cp">#![feature(asm)]</span><span class="w"></span>
+
+<span class="k">fn</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="n">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;Calculating...&quot;</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="k">unsafe</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">asm</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;mov r0, #5</span>
+<span class="s">              mov r1, #6</span>
+<span class="s">              mov r2, #15</span>
+<span class="s">              mov r3, #27</span>
+<span class="s">              add r0, r0, r2</span>
+<span class="s">              add r1, r1, r3</span>
+<span class="s">              asr r0, r0, #1</span>
+<span class="s">              asr r1, r1, #1&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;Done&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+<p>and compile it (make sure you are on a nightly compiler):</p>
+<div class="highlight"><pre><span></span>$ cargo build --target<span class="o">=</span>arm-unknown-linux-gnueabihf
+</pre></div>
+<p>It should build okay.</p>
+<h2>Actually running it</h2>
+<p>To run the foreign binary, we can take two approaches. First, we could copy the program to an ARM system like the Raspberry Pi or a virtual machine and execute it from there. Second, if we are lucky enough to be programming on a Linux-machine, there is a convenient way of running non-native binaries directly using <a href="https://wiki.debian.org/QemuUserEmulation">QEMU User Emulation</a>.</p>
+<p>Assuming user mode emulation is installed, we can run our program like any other and have it tell us we did something wrong immediately:</p>
+<div class="highlight"><pre><span></span>$ cargo run --target=arm-unknown-linux-gnueabihf
+    Finished debug [unoptimized + debuginfo] target(s) in 0.0 secs
+     Running `target/arm-unknown-linux-gnueabihf/debug/example-arm-asm`
+Calculating...
+qemu: uncaught target signal 11 (Segmentation fault) - core dumped
+error: Process didn&#39;t exit successfully: `target/arm-unknown-linux-gnueabihf/debug/example-arm-asm` (signal: 11, SIGSEGV: invalid memory reference)
+</pre></div>
+<h1>The <code>asm!</code> macro</h1>
+<p>Looking at the <code>asm!</code> macro, whose <a href="https://doc.rust-lang.org/book/inline-assembly.html">rather sparse documentation</a> prompted the writing of this article, we see that it has the following syntax:</p>
+<div class="highlight"><pre><span></span><span class="n">asm</span><span class="o">!</span><span class="p">(</span><span class="n">assembly</span><span class="w"> </span><span class="n">template</span><span class="w"></span>
+<span class="w">   </span><span class="o">:</span><span class="w"> </span><span class="n">output</span><span class="w"> </span><span class="n">operands</span><span class="w"></span>
+<span class="w">   </span><span class="o">:</span><span class="w"> </span><span class="n">input</span><span class="w"> </span><span class="n">operands</span><span class="w"></span>
+<span class="w">   </span><span class="o">:</span><span class="w"> </span><span class="n">clobbers</span><span class="w"></span>
+<span class="w">   </span><span class="o">:</span><span class="w"> </span><span class="n">options</span><span class="w"></span>
+<span class="w">   </span><span class="p">);</span><span class="w"></span>
+</pre></div>
+<p>Any amount of trailing <code>:</code> is optional, so far our example code has just been using the <code>assembly template</code> part.</p>
+<h2>clobbering</h2>
+<p>Now it is time to look at the reason why our program crashed. Disassembling our code using <code>arm-none-eabi-objdump -D target/arm-unknown-linux-gnueabihf/debug/example-arm-asm</code>, we get the following output (showing only relevant lines):</p>
+<div class="highlight"><pre><span></span>...
+    3778:    e3a00005     mov    r0, #5
+    377c:    e3a01006     mov    r1, #6
+    3780:    e3a0200f     mov    r2, #15
+    3784:    e3a0301b     mov    r3, #27
+    3788:    e0800002     add    r0, r0, r2
+    378c:    e0811003     add    r1, r1, r3
+    3790:    e1a000c0     asr    r0, r0, #1
+    3794:    e1a010c1     asr    r1, r1, #1
+    3798:    e5901000     ldr    r1, [r0]
+    ...
+</pre></div>
+<p>The first eight lines are the example code written above. Following the control flow, we see <code>ldr</code> loads data into the register <code>r1</code>, using an address stored <code>r0</code> --- which was just overwritten with the result the algorithms output!</p>
+<p>This is known as <em>clobbering</em> --- by writing to registers without letting the compiler know about what we are doing, we have introduced undefined behaviour which will most likely result in a crash, as it did above.</p>
+<p>To remedy, we can give a comma-separated list of registers that the assembly-code will use and the compiler will take care to structure all of its own calculations in a way that conflicts are avoided:</p>
+<div class="highlight"><pre><span></span><span class="n">asm</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;mov r0, #5</span>
+<span class="s">      mov r1, #6</span>
+<span class="s">      mov r2, #15</span>
+<span class="s">      mov r3, #27</span>
+<span class="s">      add r0, r0, r2</span>
+<span class="s">      add r1, r1, r3</span>
+<span class="s">      asr r0, r0, #1</span>
+<span class="s">      asr r1, r1, #1&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="o">:</span><span class="w">                          </span><span class="c1">// no outputs yet</span>
+<span class="w">    </span><span class="o">:</span><span class="w">                          </span><span class="c1">// no inputs yet</span>
+<span class="w">    </span><span class="o">:</span><span class="w">  </span><span class="s">&quot;r0&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;r1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;r2&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;r3&quot;</span><span class="w">  </span><span class="c1">// clobbers</span>
+<span class="w">    </span><span class="o">:</span><span class="w">                          </span><span class="c1">// no options</span>
+<span class="p">);</span><span class="w"></span>
+</pre></div>
+<p>Looking at the disassembly output again, we see that the contents of <code>r0</code> are saved on the stack before our code runs and restored after:</p>
+
+<pre><code>    3778:    e58d0008     str    r0, [sp, #8]
+    ...
+    379c:    e59d0008     ldr    r0, [sp, #8]</code></pre>
+<p>The example program now runs without crashing.</p>
+<h2>output</h2>
+<p>To make the code above even slightly useful, we will need to be able to collect its output values. For this, the <code>output</code> parameter of the <code>asm!</code> macro can be used. In inline assembly, <em>operand expressions</em> are used to tell the compiler which variables should hold the end result of a calculation.</p>
+<p>Getting a good reference about these is hard --- Rust passes these on to LLVM <a href="http://llvm.org/docs/LangRef.html#inline-assembler-expressions">(docs)</a> almost unchanged, which in turn bases its syntax on GCC <a href="https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html#Extended-Asm">(docs)</a>, but there are some non-obvious differences.</p>
+<p>Our simple example case is fortunately not complicated: We want to save the contents of registers <code>r0</code> and <code>r1</code> in two variables, which we will call <code>m_x</code> and <code>m_y</code>. For these, a type-annotated declaration must be introduced beforehand and the following <code>asm!</code> macro call changed:</p>
+<div class="highlight"><pre><span></span><span class="kd">let</span><span class="w"> </span><span class="n">m_x</span><span class="o">:</span><span class="w"> </span><span class="kt">u32</span><span class="p">;</span><span class="w"></span>
+<span class="kd">let</span><span class="w"> </span><span class="n">m_y</span><span class="o">:</span><span class="w"> </span><span class="kt">u32</span><span class="p">;</span><span class="w"></span>
+
+<span class="k">unsafe</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="n">asm</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;mov r0, #5</span>
+<span class="s">          mov r1, #6</span>
+<span class="s">          mov r2, #15</span>
+<span class="s">          mov r3, #27</span>
+<span class="s">          add r0, r0, r2</span>
+<span class="s">          add r1, r1, r3</span>
+<span class="s">          asr r0, r0, #1</span>
+<span class="s">          asr r1, r1, #1&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="o">:</span><span class="w">  </span><span class="s">&quot;={r0}&quot;</span><span class="w"> </span><span class="p">(</span><span class="n">m_x</span><span class="p">),</span><span class="w"> </span><span class="s">&quot;={r1} &quot;</span><span class="p">(</span><span class="n">m_y</span><span class="p">)</span><span class="w">  </span><span class="c1">// outputs</span>
+<span class="w">        </span><span class="o">:</span><span class="w">                                </span><span class="c1">// no inputs yet</span>
+<span class="w">        </span><span class="o">:</span><span class="w">  </span><span class="s">&quot;r0&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;r1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;r2&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;r3&quot;</span><span class="w">        </span><span class="c1">// clobbers</span>
+<span class="w">        </span><span class="o">:</span><span class="w">                                </span><span class="c1">// no options</span>
+<span class="w">    </span><span class="p">);</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+<p>The syntax for specifying outputs is as follows:</p>
+
+<pre><code>'"' constraint '"' '(' variableName ')'</code></pre>
+<p>All output constraints start with a "=" (write) or "+" (read and write). <code>"={r0}"</code> restricts the placement to the register <code>r0</code>, it is wrapped in curly braces because otherwise single-letter values would be expected at the position.</p>
+<p>The actual variable follows in parenthesis after the constraint. <code>m_x</code> and <code>m_y</code> are the obvious values here.</p>
+<p>Note that this output declaration is not very clean or flexible, as it forces the compiler to place our outputs exactly inside <code>r0</code> and <code>r1</code>. A better way is to use template names and allow more flexible placement:</p>
+<div class="highlight"><pre><span></span><span class="kd">let</span><span class="w"> </span><span class="n">m_x</span><span class="o">:</span><span class="w"> </span><span class="kt">u32</span><span class="p">;</span><span class="w"></span>
+<span class="kd">let</span><span class="w"> </span><span class="n">m_y</span><span class="o">:</span><span class="w"> </span><span class="kt">u32</span><span class="p">;</span><span class="w"></span>
+
+<span class="k">unsafe</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="n">asm</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;mov $0, #5</span>
+<span class="s">          mov $1, #6</span>
+<span class="s">          mov r2, #15</span>
+<span class="s">          mov r3, #27</span>
+<span class="s">          add $0, $0, r2</span>
+<span class="s">          add $1, $1, r3</span>
+<span class="s">          asr $0, $0, #1</span>
+<span class="s">          asr $1, $1, #1&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="o">:</span><span class="w">  </span><span class="s">&quot;=r&quot;</span><span class="p">(</span><span class="n">m_x</span><span class="p">),</span><span class="w"> </span><span class="s">&quot;=r&quot;</span><span class="p">(</span><span class="n">m_y</span><span class="p">)</span><span class="w">  </span><span class="c1">// outputs</span>
+<span class="w">        </span><span class="o">:</span><span class="w">                        </span><span class="c1">// no inputs yet</span>
+<span class="w">        </span><span class="o">:</span><span class="w">  </span><span class="s">&quot;r2&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;r3&quot;</span><span class="w">            </span><span class="c1">// clobbers</span>
+<span class="w">        </span><span class="o">:</span><span class="w">                        </span><span class="c1">// no options</span>
+<span class="w">    </span><span class="p">);</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;Result M: ({}, {})&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">m_x</span><span class="p">,</span><span class="w"> </span><span class="n">m_y</span><span class="p">);</span><span class="w"></span>
+</pre></div>
+<p>Instead of specifying a value, we replaced every occurence of <code>r0</code> with <code>$0</code>. The <code>$0</code> specifies that the first operand is to be used (the count starts at 0 with the first output constraint, with input constraints being counted last). The restriction <code>"=r"(m_x)</code> indicates that said first operand is an output operand that needs to be kept in a register (<code>"=r"</code>) and will be available in the variable <code>m_x</code>. The second operand is declared the same way.</p>
+<p>The compiler can now choose which registers to use instead of <code>r0</code> and <code>r1</code>, which have disappeared from the assembly and the clobber list.</p>
+<p>Running the program yields the expected result:</p>
+<div class="highlight"><pre><span></span>Result M: (10, 16)
+</pre></div>
+<h2>input</h2>
+<p>Only getting outputs is still not sufficient, we want to be able to input things as well. Input operands work similar to output operands, sans the leading <code>=</code>:</p>
+<div class="highlight"><pre><span></span><span class="kd">let</span><span class="w"> </span><span class="n">a_x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="k">u32</span><span class="p">;</span><span class="w"></span>
+<span class="kd">let</span><span class="w"> </span><span class="n">a_y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6</span><span class="k">u32</span><span class="p">;</span><span class="w"></span>
+
+<span class="kd">let</span><span class="w"> </span><span class="n">b_x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">15</span><span class="k">u32</span><span class="p">;</span><span class="w"></span>
+<span class="kd">let</span><span class="w"> </span><span class="n">b_y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">27</span><span class="k">u32</span><span class="p">;</span><span class="w"></span>
+
+<span class="c1">// ...</span>
+
+<span class="n">asm</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;mov $0, $2</span>
+<span class="s">      mov $1, $3</span>
+<span class="s">      mov r2, $4</span>
+<span class="s">      mov r3, $5</span>
+<span class="s">      add $0, $0, r2</span>
+<span class="s">      add $1, $1, r3</span>
+<span class="s">      asr $0, $0, #1</span>
+<span class="s">      asr $1, $1, #1</span>
+<span class="s">      &quot;</span><span class="w"></span>
+<span class="w">    </span><span class="o">:</span><span class="w">  </span><span class="s">&quot;=r&quot;</span><span class="p">(</span><span class="n">m_x</span><span class="p">),</span><span class="w"> </span><span class="s">&quot;=r&quot;</span><span class="p">(</span><span class="n">m_y</span><span class="p">)</span><span class="w">                    </span><span class="c1">// outputs</span>
+<span class="w">    </span><span class="o">:</span><span class="w">  </span><span class="s">&quot;r&quot;</span><span class="p">(</span><span class="n">a_x</span><span class="p">),</span><span class="w"> </span><span class="s">&quot;r&quot;</span><span class="p">(</span><span class="n">a_y</span><span class="p">),</span><span class="w"> </span><span class="s">&quot;r&quot;</span><span class="p">(</span><span class="n">b_x</span><span class="p">),</span><span class="w"> </span><span class="s">&quot;r&quot;</span><span class="p">(</span><span class="n">b_y</span><span class="p">)</span><span class="w">  </span><span class="c1">// inputs</span>
+<span class="w">    </span><span class="o">:</span><span class="w">  </span><span class="s">&quot;r2&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;r3&quot;</span><span class="w">                              </span><span class="c1">// clobbers</span>
+<span class="w">    </span><span class="o">:</span><span class="w">                                          </span><span class="c1">// no options</span>
+<span class="p">);</span><span class="w"></span>
+</pre></div>
+<p>The code above will compile, but the result will be wrong:</p>
+
+<pre><code>Result M: (5, 16)</code></pre>
+<p>This is because the program violated one of the <a href="http://llvm.org/docs/LangRef.html#output-constraints">requirements of LLVMs inline assembly</a>:</p>
+<blockquote><p>Normally, it is expected that no output locations are written to by the assembly expression until all of the inputs have been read. As such, LLVM may assign the same register to an output and an input. If this is not safe (e.g. if the assembly contains two instructions, where the first writes to one output, and the second reads an input and writes to a second output), then the “&amp;” modifier must be used (e.g. “=&amp;r”) to specify that the output is an “early-clobber” output. Marking an output as “early-clobber” ensures that LLVM will not use the same register for any inputs (other than an input tied to this output).</p>
+</blockquote>
+<p>In other words, LLVM will freely use a register that we wanted to read input from as the output register in our assembly code. While occasionally hard to notice, this is easily fixed by reordering the template</p>
+<div class="highlight"><pre><span></span><span class="n">asm</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;mov r2, $4</span>
+<span class="s">      mov r3, $5</span>
+<span class="s">      mov $0, $2</span>
+<span class="s">      mov $1, $3</span>
+<span class="s">      ...</span>
+<span class="s">      &quot;</span><span class="w"></span>
+<span class="c1">// ...</span>
+</pre></div>
+<p>We can optimize the code further though: Since we require all of our input variables to be in registers (via <code>"r"</code> constraints) already, it is possible to get rid of the initial <code>mov</code> instructions. We do need to mark them as "early-clobber" though, as we are using an output register at the same time as an input register (e.g. <code>$0</code> and <code>$2</code>):</p>
+<div class="highlight"><pre><span></span><span class="k">unsafe</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="n">asm</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;add $0, $2, $4</span>
+<span class="s">          add $1, $3, $5</span>
+<span class="s">          asr $0, $0, #1</span>
+<span class="s">          asr $1, $1, #1</span>
+<span class="s">          &quot;</span><span class="w"></span>
+<span class="w">        </span><span class="o">:</span><span class="w">  </span><span class="s">&quot;=&amp;r&quot;</span><span class="p">(</span><span class="n">m_x</span><span class="p">),</span><span class="w"> </span><span class="s">&quot;=&amp;r&quot;</span><span class="p">(</span><span class="n">m_y</span><span class="p">)</span><span class="w">                  </span><span class="c1">// outputs</span>
+<span class="w">        </span><span class="o">:</span><span class="w">  </span><span class="s">&quot;r&quot;</span><span class="p">(</span><span class="n">a_x</span><span class="p">),</span><span class="w"> </span><span class="s">&quot;r&quot;</span><span class="p">(</span><span class="n">a_y</span><span class="p">),</span><span class="w"> </span><span class="s">&quot;r&quot;</span><span class="p">(</span><span class="n">b_x</span><span class="p">),</span><span class="w"> </span><span class="s">&quot;r&quot;</span><span class="p">(</span><span class="n">b_y</span><span class="p">)</span><span class="w">  </span><span class="c1">// inputs</span>
+<span class="w">        </span><span class="o">:</span><span class="w">                                          </span><span class="c1">// clobbers</span>
+<span class="w">        </span><span class="o">:</span><span class="w">                                          </span><span class="c1">// no options</span>
+<span class="w">    </span><span class="p">);</span><span class="w"></span>
+</pre></div>
+<h2>Wrapping up</h2>
+<p>Using a data strucuture and moving the inline assembly inside a function cleans up the code nicely:</p>
+<div class="highlight"><pre><span></span><span class="cp">#![feature(asm)]</span><span class="w"></span>
+
+<span class="cp">#[derive(Clone, Copy, Debug)]</span><span class="w"></span>
+<span class="k">struct</span><span class="w"> </span><span class="n">Point</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="n">x</span><span class="o">:</span><span class="w"> </span><span class="kt">u32</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="n">y</span><span class="o">:</span><span class="w"> </span><span class="kt">u32</span><span class="p">,</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+
+<span class="sd">/// Calculate the midpoint between two points `a` and `b`.</span>
+<span class="k">fn</span><span class="w"> </span><span class="n">calc_midpoint</span><span class="p">(</span><span class="n">a</span><span class="o">:</span><span class="w"> </span><span class="n">Point</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="o">:</span><span class="w"> </span><span class="n">Point</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Point</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">m_x</span><span class="o">:</span><span class="w"> </span><span class="kt">u32</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">m_y</span><span class="o">:</span><span class="w"> </span><span class="kt">u32</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="k">unsafe</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">asm</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;add $0, $2, $4</span>
+<span class="s">              add $1, $3, $5</span>
+<span class="s">              asr $0, $0, #1</span>
+<span class="s">              asr $1, $1, #1</span>
+<span class="s">              &quot;</span><span class="w"></span>
+<span class="w">            </span><span class="o">:</span><span class="w">  </span><span class="s">&quot;=&amp;r&quot;</span><span class="p">(</span><span class="n">m_x</span><span class="p">),</span><span class="w"> </span><span class="s">&quot;=&amp;r&quot;</span><span class="p">(</span><span class="n">m_y</span><span class="p">)</span><span class="w">                  </span><span class="c1">// outputs</span>
+<span class="w">            </span><span class="o">:</span><span class="w">  </span><span class="s">&quot;r&quot;</span><span class="p">(</span><span class="n">a</span><span class="p">.</span><span class="n">x</span><span class="p">),</span><span class="w"> </span><span class="s">&quot;r&quot;</span><span class="p">(</span><span class="n">a</span><span class="p">.</span><span class="n">y</span><span class="p">),</span><span class="w"> </span><span class="s">&quot;r&quot;</span><span class="p">(</span><span class="n">b</span><span class="p">.</span><span class="n">x</span><span class="p">),</span><span class="w"> </span><span class="s">&quot;r&quot;</span><span class="p">(</span><span class="n">b</span><span class="p">.</span><span class="n">y</span><span class="p">)</span><span class="w">  </span><span class="c1">// inputs</span>
+<span class="w">            </span><span class="o">:</span><span class="w">                                          </span><span class="c1">// clobbers</span>
+<span class="w">            </span><span class="o">:</span><span class="w">                                          </span><span class="c1">// no options</span>
+<span class="w">        </span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">Point</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">x</span><span class="o">:</span><span class="w"> </span><span class="n">m_x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="o">:</span><span class="w"> </span><span class="n">m_y</span><span class="w"> </span><span class="p">}</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+
+<span class="k">fn</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Point</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">x</span><span class="o">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="o">:</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Point</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">x</span><span class="o">:</span><span class="w"> </span><span class="mi">15</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="o">:</span><span class="w"> </span><span class="mi">27</span><span class="w"> </span><span class="p">};</span><span class="w"></span>
+
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">calc_midpoint</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;Midpoint between A := {:?} and B := {:?} is:&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">println</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;M = {:?}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">m</span><span class="p">);</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+<p>Inline assembly is tricky to get right and the documentation has a bit of a patchwork feel, especially if one is spoiled by the excellent material that is Rust's other documentation. Sometimes, though, there is no way around a few lines of inline assembly --- a situation we will explore in another article.</p>
+
+
+  
+  <p class="author-bio"><p>Marc Brinkmann has been developing embedded soft- and firmware in Rust as a freelancer since 2015 and is a CS student on the side. If you use an unchecked <code>unwrap()</code> inside a library, he <em>will</em> come and find you.</p>
+</p>
+</div>
+
+  </div> <!-- /main -->
+</div> <!-- /container -->
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+});
+</script>
+<script type="text/javascript" async
+  src="../../../static/js/MathJax.js?config=TeX-AMS_CHTML"></script>
+</body>
+</html>
