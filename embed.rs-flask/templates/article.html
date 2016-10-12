@@ -9,6 +9,12 @@
       {%- if not loop.last %}, {% endif %}
     {% endfor %}
     &middot; {{ (article.date|arrow).format('MMMM DD, YYYY') }}</div>
-  {{ article.teaser if article.teaser else article.content|markdown }}
+  {{ article.content|markdown }}
+
+  {% for author in article.authors %}
+  {%- if author.short_bio %}
+  <p class="author-bio">{{ author.short_bio|markdown }}</p>
+  {%- endif %}
+  {%- endfor %}
 </div>
 {% endblock %}
