@@ -100,7 +100,7 @@ body, div {
   padding-bottom: 72px;
 }
 
-.article {
+.article, .page {
   margin-left: 72px;
   max-width: 628px;
 }

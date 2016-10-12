@@ -72,6 +72,10 @@ class Timestamp(AttributeField):
         return arrow.get(val)
 
 
+class Page(db.Model):
+    _table = 'pages'
+
+
 class Author(db.Model):
     _table = 'authors'
 
@@ -130,6 +134,11 @@ def list_articles():
 @app.route('/articles/<path:slug>')
 def show_article(slug):
     return render_template('article.html', article=Article.get(slug + '.md'))
+
+
+@app.route('/about')
+def about():
+    return render_template('page.html', page=Page.get('about.md'))
 
 
 if __name__ == '__main__':

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block title %}{{page.title}}{% endblock %}
+
+{% block content %}
+<div class="page">
+{{page.content|markdown}}
+</div>
+{% endblock %}
