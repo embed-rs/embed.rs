@@ -61,6 +61,11 @@ pre {
   font-family: Source Code Pro, monospace;
   font-weight: 400;
   font-size: 14px;
+  white-space: pre-wrap;
+}
+
+div.highlight {
+  margin-bottom: 18px;
 }
 
 h1, h2, h3, h4, h5, h6, .headline-font {
@@ -160,13 +165,4 @@ p.teaser {
   height: 36px;
   margin-bottom: 18px;
   margin-top: 18px;
-}
-
-pre {
-  border-top: 1px solid #eeeeee;
-  border-bottom: 1px solid #eeeeee;
-  margin-top: 18px;
-  margin-bottom: 18px;
-  white-space: pre-wrap;
-
 }
