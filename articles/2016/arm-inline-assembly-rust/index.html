@@ -2,9 +2,9 @@
 <html>
 <head>
   <title> - embed.rs</title>
-  <link rel="stylesheet" type="text/css" href="../../../static/css/fonts.css">
-  <link rel="stylesheet" type="text/css" href="../../../static/css/two.css">
-  <link rel="stylesheet" type="text/css" href="../../../static/css/github.css">
+  <link rel="stylesheet" type="text/css" href="/static/css/fonts.css">
+  <link rel="stylesheet" type="text/css" href="/static/css/two.css">
+  <link rel="stylesheet" type="text/css" href="/static/css/github.css">
 </head>
 <body>
 <div class="container">
@@ -13,17 +13,17 @@
     <span class="slogan">Rust embedded development</span>
     </div>
     <ul class="menu">
-      <li><a href="../../../index.html">/articles</a></li>
-      <li><a href="../../../about/index.html">/about</a></li>
+      <li><a href="/">/articles</a></li>
+      <li><a href="/about/">/about</a></li>
     </ul>
     <div class="gitlink last"><a href="https://github.com/embed-rs">
-      <img src="../../../static/img/github_light.png">
+      <img src="/static/img/github_light.png">
     </a></div>
   </div>
   <div class="main">
   
 <div class="article">
-  <h1><a href="index.html">Exploring ARM inline assembly in Rust</a></h1>
+  <h1><a href="/articles/2016/arm-inline-assembly-rust/">Exploring ARM inline assembly in Rust</a></h1>
   <div class="info">
     by 
 
@@ -39,13 +39,13 @@
 
     
     &middot; October 10, 2016</div>
-  <p>Inline assembly in modern languages is easily forgotten in day-to-day programming; its use has been diminished by having excellent compilers that produce equivalent or better code than what most programmers can hand-optimize. Outside of the field of optimization there are still some legitimate reasons to write a couple of instructions of assembly even then: Accessing CPU features that are platform-specific or simply not covered by compiler or library vendors.</p>
-<p>This article gives a short introduction into inline assembly in Rust. It focuses on embedded development, more specifically the <a href="https://en.wikipedia.org/wiki/ARM_architecture">ARM</a> architecture, which has a good reputation for being clear and also a lot of application in the embedded world, where one is much more likely to find oneself reaching for an assembler than on the desktop world of <a href="https://en.wikipedia.org/wiki/X86-64">x86-64</a>.</p>
+  <p>Inline assembly in modern languages is easily forgotten in day-to-day programming. Excellent compilers produce code that is equivalent or better than what most programmers can hand-optimize. But outside of the field of optimization there are still some legitimate reasons to write assembly: Accessing CPU features that are platform-specific or simply not covered by compiler or library vendors.</p>
+<p>This article gives a short introduction into inline assembly in Rust. It focuses on embedded development, more specifically the <a href="https://en.wikipedia.org/wiki/ARM_architecture">ARM</a> architecture, which has a good reputation for being clear to understand. It also sees a lot of application in the embedded world, where one is much more likely to find oneself reaching for an assembler than on the domain of <a href="https://en.wikipedia.org/wiki/X86-64">x86-64</a>.</p>
 <h1>What is assembly?</h1>
 <p>Compiling a valid Rust program ultimately yields a binary than can be executed. The process of generating one includes multiple steps that are hidden from the programmer:</p>
 <p><img src="/static/content/arm-inline-assembly-rust_01.svg" alt="Rust source to machine code. See https://blog.rust-lang.org/2016/04/19/MIR.html for more details"></p>
 <p>The red section happens inside the Rust compiler which turns Rust source code into <a href="http://llvm.org/">LLVM</a> <em>intermediate representation</em> (IR). The LLVM IR can be thought of as language-agnostic; C-code compiled with <a href="http://clang.llvm.org/">clang</a> will end up as LLVM IR the same way as Rust code does at one point during compilation. After generation, the intermediate representation will be optimized and turned into the machine code that ends up inside the final binary.</p>
-<p>Binary or numerical machine code refers to a set of instructions the target CPU can directly execute, with each instruction being coded numerically; e.g. adding two operands in ARM assembly is represented by the <a href="https://en.wikipedia.org/wiki/Opcode">opcode</a> <code>0100</code>. Since these are hard to read, a text-based representation is avaiablable: <a href="https://en.wikipedia.org/wiki/Assembly_language">Assembly code</a>. Addition becomes <code>ADD</code> instead of
+<p>Binary or numerical machine code refers to a set of instructions the target CPU can directly execute, with each instruction being coded numerically; e.g. adding two operands in ARM assembly is represented by the <a href="https://en.wikipedia.org/wiki/Opcode">opcode</a> <code>0b0100</code>. Since these are hard to read, a text-based representation is avaiablable: <a href="https://en.wikipedia.org/wiki/Assembly_language">Assembly code</a>. Addition becomes <code>ADD</code> instead of
 <code>0100</code> and operands can be specified a little easier as well. Some platform-dependant exceptions aside, assembly code maps onto binary machine instructions in a 1:1 manner.</p>
 <p>Modern, high-level languages exist primarily to free the programmer from having to hand-write (and optimize) assembly code for their machine. Since gaining direct access to assembly instructions is rarely worth losing the ability to write high-level code, <strong><a href="https://en.wikipedia.org/wiki/Inline_assembler">inline assembly</a></strong> can be used to write small fragments of assembly embedded in the language of choice.</p>
 <h2>Syntax</h2>
@@ -356,6 +356,6 @@ MathJax.Hub.Config({
 });
 </script>
 <script type="text/javascript" async
-  src="../../../static/js/MathJax.js?config=TeX-AMS_CHTML"></script>
+  src="/static/js/MathJax.js?config=TeX-AMS_CHTML"></script>
 </body>
 </html>
