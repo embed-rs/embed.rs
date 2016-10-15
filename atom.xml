@@ -1,49 +1,22 @@
-<!doctype html>
-<html>
-<head>
-  <title>Exploring ARM inline assembly in Rust - embed.rs</title>
-  <link rel="stylesheet" type="text/css" href="/static/css/fonts.css">
-  <link rel="stylesheet" type="text/css" href="/static/css/two.css">
-  <link rel="stylesheet" type="text/css" href="/static/css/github.css">
-  <link rel="icon" href="/static/img/icon.png" sizes="512x512" type="image/png">
-  <link rel="icon" href="/static/img/icon.svg" sizes="any" type="image/svg+xml">
-  <link rel="alternate" type="application/atom+xml" title="embed.rs" href="/atom.xml" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body>
-<div class="container">
-  <div class="navbar">
-    <div><span class="logo"><a href="/">embed<span class="accent">.rs</span></a></span><br>
-    <span class="slogan">Rust embedded development</span>
-    </div>
-    <ul class="menu">
-      <li><a href="/articles/">/articles</a></li>
-      <li><a href="/about/">/about</a></li>
-    </ul>
-    <div class="gitlink last"><a href="https://github.com/embed-rs">
-      <img src="/static/img/github_light.png">
-    </a></div>
-  </div>
-  <div class="main">
-  
-<div class="article">
-  <h1>Exploring ARM inline assembly in Rust</h1>
-  <div class="info">
-    by 
-
-      <a href="https://github.com/mbr" title="about Marc Brinkmann">Marc Brinkmann</a>
-
-
-    with contributions from 
-
-      <a href="https://github.com/oli_obk" title="about Oliver Schneider">Oliver Schneider</a>, 
-
-      <a href="https://github.com/phil-opp" title="about Philipp Oppermann">Philipp Oppermann</a>
-
-
-    
-    &middot; October 10, 2016</div>
-  <p>Inline assembly in modern languages is easily forgotten in day-to-day programming. Excellent compilers produce code that is equivalent or better than what most programmers can hand-optimize. But outside of the field of optimization there are still some legitimate reasons to write assembly: Accessing CPU features that are platform-specific or simply not covered by compiler or library vendors.</p>
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title type="text">embed.rs</title>
+  <id>http://localhost/atom.xml</id>
+  <updated>2016-10-10T17:09:35+02:00</updated>
+  <link href="http://embed.rs" />
+  <link href="http://localhost/atom.xml" rel="self" />
+  <subtitle type="text">Rust embedded development</subtitle>
+  <generator>Werkzeug</generator>
+  <entry xml:base="http://localhost/atom.xml">
+    <title type="text">Exploring ARM inline assembly in Rust</title>
+    <id>article:article.slug</id>
+    <updated>2016-10-10T17:09:35+02:00</updated>
+    <published>2016-10-10T17:09:35+02:00</published>
+    <link href="/articles/2016/arm-inline-assembly-rust/" />
+    <author>
+      <name>Marc Brinkmann</name>
+    </author>
+    <content type="html"><p>Inline assembly in modern languages is easily forgotten in day-to-day programming. Excellent compilers produce code that is equivalent or better than what most programmers can hand-optimize. But outside of the field of optimization there are still some legitimate reasons to write assembly: Accessing CPU features that are platform-specific or simply not covered by compiler or library vendors.</p>
 <p>This article gives a short introduction into inline assembly in Rust. It focuses on embedded development, more specifically the <a href="https://en.wikipedia.org/wiki/ARM_architecture">ARM</a> architecture, which has a good reputation for being clear to understand. It also sees a lot of application in the embedded world, where one is much more likely to find oneself reaching for an assembler than on the domain of <a href="https://en.wikipedia.org/wiki/X86-64">x86-64</a>.</p>
 <h2>What is assembly?</h2>
 <p>Compiling a valid Rust program ultimately yields a binary than can be executed. The process of generating one includes multiple steps that are hidden from the programmer:</p>
@@ -345,22 +318,6 @@ error: Process didn&#39;t exit successfully: `target/arm-unknown-linux-gnueabihf
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 <p>Inline assembly is tricky to get right and the documentation has a bit of a patchwork feel, especially if one is spoiled by the excellent material that is Rust's other documentation. Sometimes, though, there is no way around a few lines of inline assembly --- a situation we will explore in another article.</p>
-
-
-  
-  <div class="author-short-bio"><p>Marc Brinkmann has been developing embedded soft- and firmware in Rust as a freelancer since 2015 and is a CS student on the side. If you use an unchecked <code>unwrap()</code> inside a library, he <em>will</em> come and find you.</p>
-</p>
-</div>
-
-  </div> <!-- /main -->
-</div> <!-- /container -->
-<script type="text/x-mathjax-config">
-MathJax.Hub.Config({
-  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
-});
-</script>
-<script type="text/javascript" async
-  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML">
-</script>
-</body>
-</html>
+</content>
+  </entry>
+</feed>
