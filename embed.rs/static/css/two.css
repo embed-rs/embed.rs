@@ -88,6 +88,19 @@ h3, h4, h5, h6 {
   font-size: 1em;
 }
 
+a {
+  text-decoration: none;
+  color: #090451;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+a:active {
+  color: #ec6b1d;
+}
+
 body, div {
   font-family: Lato, serif;
   font-weight: 300;
@@ -107,7 +120,13 @@ body, div {
 
 .article .info {
   font-size: 0.8em;
-  margin-bottom: 18px;
+  margin-bottom: 1em;
+}
+
+.article-item .info {
+  font-size: 0.8em;
+  margin-top: 1em;
+  margin-bottom: -0.5em;
 }
 
 p, ul, ol {
@@ -124,6 +143,12 @@ p.teaser {
 
 .article ol li {
   list-style-type: decimal;
+}
+
+.read-article {
+  font-weight: 700;
+  margin-left: 1em;
+  margin-top: 0em;
 }
 
 /* navbar styles */
