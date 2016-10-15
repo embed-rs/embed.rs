@@ -64,6 +64,10 @@ pre {
   white-space: pre-wrap;
 }
 
+code {
+  font-family: Source Code Pro, monospace;
+}
+
 div.highlight {
   margin-bottom: 18px;
 }
@@ -172,6 +176,12 @@ p.teaser {
 
 .navbar .logo a {
   text-decoration: none;
+}
+
+.author-short-bio {
+  color: #666;
+  font-style: italic;
+  font-size: 0.8em;
 }
 
 @media screen and (max-device-width: 768px) {

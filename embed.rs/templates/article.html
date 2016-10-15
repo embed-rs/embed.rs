@@ -22,7 +22,7 @@
 
   {% for author in article.authors %}
   {%- if author.short_bio %}
-  <p class="author-bio">{{ author.short_bio|markdown }}</p>
+  <div class="author-short-bio">{{ author.short_bio|markdown }}</p>
   {%- endif %}
   {%- endfor %}
 </div>
