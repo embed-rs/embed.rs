@@ -3,15 +3,16 @@
 {% block title %}{{article.title}} - embed.rs{% endblock %}
 
 {% macro writer_list(writers) %}
-{% for writer in writers|sort(attribute="full_name") %}
-      <a href="{{ writer.link }}">{{ writer.full_name }}</a>
-      {%- if not loop.last %}, {% endif %}
-{% endfor %}
-{% endmacro %}
+{%- set items = [] %}
+{%- for writer in writers|sort(attribute="full_name") -%}
+{%- set _ = items.append((writer.full_name, writer.link)) -%}
+{%- endfor -%}
+{{link_list(items)}}
+{%- endmacro %}
 
 {% macro link_list(items, sep=", ", use_and=True) %}
 {%- for text, url in items -%}
-      {% if use_and and loop.revindex == 1 %} and {% endif %}
+      {% if use_and and loop.revindex == 1 and loop.index > 1 %} and {% endif %}
       <a href="{{ url }}">{{ text }}</a>
       {%- if loop.revindex > 2 or not use_and and loop.revindex > 1 %}{{sep}}{% endif %}
 {%- endfor %}
