@@ -93,12 +93,13 @@ h3, h4, h5, h6 {
 }
 
 a {
-  text-decoration: none;
+  text-decoration: underline;
   color: #090451;
 }
 
 a:hover {
   text-decoration: underline;
+  color: #ec6b1d;
 }
 
 a:active {
