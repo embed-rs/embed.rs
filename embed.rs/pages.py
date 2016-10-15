@@ -7,6 +7,7 @@ from flask import Flask, render_template, url_for
 from flask_frozen import Freezer
 from flask_mistune import Mistune
 import highlight
+import mistune
 import tflat
 from tinydb import TinyDB, Query
 from werkzeug.contrib.atom import AtomFeed
@@ -127,6 +128,7 @@ db.bind((site_db(os.path.join(os.path.dirname(__file__), 'content'))))
 
 # add extensions
 Mistune(app, renderer=highlight.HighlightRenderer())
+atom_renderer = highlight.HighlightRenderer(use_xhtml=True)
 freezer = Freezer(app)
 
 
@@ -157,11 +159,13 @@ def atom_feed():
     for article in sorted(Article.all(), key=lambda a: a.date):
         feed.add(
             article.title,
-            app.jinja_env.filters['markdown'](article.content),
+            mistune.markdown(article.content,
+                             renderer=atom_renderer),
             content_type='html',
             author=", ".join(a.full_name for a in article.authors),
             url=url_for('show_article', slug=article.url_slug),
-            id='article:article.slug', updated=article.date,
+            id='article:article.slug',
+            updated=article.date,
             published=article.date)
 
     return feed.get_response()
