@@ -7,7 +7,7 @@ from pygments.formatters import HtmlFormatter
 
 class AssetMixin(object):
     def image(self, src, title, alt_text):
-        src = url_for('static', filename='content/' + src)
+        src = url_for('static', filename='content/' + src, _external=True)
         return super(AssetMixin, self).image(src, title, alt_text)
 
 
