@@ -10,6 +10,11 @@
     "assembly",
     "llvm",
     "arm"
+  ],
+  "discussion": [
+    ["/r/rust", "https://www.reddit.com/r/rust/comments/57lyoj/exploring_arm_inline_assembly_in_rust/"],
+    ["Hacker News", "https://news.ycombinator.com/item?id=12713802"],
+    ["lobste.rs", "https://lobste.rs/s/z3tvfc/exploring_arm_inline_assembly_rust"]
   ]
 
 }
