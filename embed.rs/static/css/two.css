@@ -94,17 +94,6 @@ body, div {
   color: #ec6b1d;
 }
 
-.main {
-  margin-left: 260px;
-  padding-top: 36px;
-  padding-bottom: 72px;
-}
-
-.article, .page {
-  margin-left: 72px;
-  max-width: 628px;
-}
-
 .article .info {
   font-size: 14px;
   margin-bottom: 18px;
@@ -126,43 +115,99 @@ p.teaser {
   list-style-type: decimal;
 }
 
-
-.sidebar {
-  width: 260px;
-  position: fixed;
+/* navbar styles */
+.navbar {
   background-color: #090451;
   color: white;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
 }
 
-.sidebar a, .sidebar a:active, .sidebar a:visited {
+.navbar a, .navbar a:active, .navbar a:visited {
   color: white;
 }
 
-.sidebar ul.menu {
-  text-align: right;
-  margin-right: 10px;
-  margin-top: 18px;
-}
-
-.sidebar > div {
-  margin: 10px;
-}
-
-.sidebar div, .sidebar p {
-  /*border: 1px dotted;*/
-}
-
-.sidebar .gitlink {
+.navbar .gitlink {
   text-align: center;
 }
 
-.sidebar .gitlink img {
+.navbar .gitlink img {
   width: 36px;
   height: 36px;
-  margin-bottom: 18px;
-  margin-top: 18px;
+}
+
+.navbar .logo a {
+  text-decoration: none;
+}
+
+@media screen and (max-width: 768px) {
+  .navbar {
+    padding: 18px 18px 0px 18px;
+  }
+
+  .navbar .slogan {
+    display: none;
+  }
+
+  .article, .page {
+    margin: 18px;
+  }
+
+  .navbar {
+    display: flex;
+  }
+
+  .navbar ul {
+    margin-top: 10px;
+  }
+
+  .navbar ul li {
+    display: inline;
+    margin-left: 15px;
+  }
+
+  .navbar .gitlink img {
+    margin: 0px 10px 0px 0px;
+  }
+
+  .navbar .gitlink  {
+    text-align: right;
+    display: block;
+    flex-grow: 2;
+  }
+}
+
+@media screen and (min-width: 769px) {
+  .article, .page {
+    margin-left: 72px;
+    max-width: 628px;
+  }
+
+  .navbar {
+    width: 260px;
+    position: fixed;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .navbar ul.menu {
+    text-align: right;
+    margin-right: 10px;
+    margin-top: 18px;
+  }
+
+  .navbar > div {
+    margin: 10px;
+  }
+
+  .navbar .gitlink img {
+    margin-bottom: 18px;
+    margin-top: 18px;
+  }
+
+  .main {
+    margin-left: 260px;
+    padding-top: 36px;
+    padding-bottom: 72px;
+  }
 }
