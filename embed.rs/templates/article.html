@@ -11,7 +11,7 @@
 
 {% block content %}
 <div class="article">
-  <h1><a href="{{url_for('.show_article', slug=article.url_slug)}}">{{ article.title }}</a></h1>
+  <h1>{{ article.title }}</h1>
   <div class="info">
     by {{ writer_list(article.authors) }}
     {%- if article.contributors %}
