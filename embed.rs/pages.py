@@ -3,12 +3,13 @@ import os
 
 import arrow
 import click
-from flask import Flask, render_template
+from flask import Flask, render_template, url_for
 from flask_frozen import Freezer
 from flask_mistune import Mistune
 import highlight
 import tflat
 from tinydb import TinyDB, Query
+from werkzeug.contrib.atom import AtomFeed
 
 
 class TinyORM(object):
@@ -143,6 +144,26 @@ def show_article(slug):
 @app.route('/about/')
 def about():
     return render_template('page.html', page=Page.get('about.md'))
+
+
+@app.route('/atom.xml')
+def atom_feed():
+    # FIXME: collect site meta-data somewhere
+    feed = AtomFeed('embed.rs',
+                    feed_url=url_for('atom_feed', _external=True),
+                    url='http://embed.rs',
+                    subtitle='Rust embedded development')
+
+    for article in sorted(Article.all(), key=lambda a: a.date):
+        feed.add(article.title,
+                 app.jinja_env.filters['markdown'](article.content),
+                 content_type='html',
+                 author=", ".join(a.full_name for a in article.authors),
+                 url=url_for('show_article', slug=article.slug),
+                 id='article:article.slug', updated=article.date,
+                 published=article.date)
+
+    return feed.get_response()
 
 
 cli = click.Group()
