@@ -130,7 +130,7 @@ freezer = Freezer(app)
 
 
 @app.route('/articles/')
-@app.route('/')
+@app.route('/', endpoint='index')
 def list_articles():
     return render_template('articles.html', articles=Article.all())
 
