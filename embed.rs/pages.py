@@ -180,6 +180,7 @@ def run(run_global):
 def freeze():
     # enable below to create a zippable version
     # app.config['FREEZER_RELATIVE_URLS'] = True
+    app.config['SERVER_NAME'] = 'embed.rs'
     freezer.freeze()
 
 
