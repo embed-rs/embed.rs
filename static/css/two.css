@@ -60,8 +60,12 @@ brand primary: #ec6b1d;
 pre {
   font-family: Source Code Pro, monospace;
   font-weight: 400;
-  font-size: 14px;
+  font-size: 0.8em;
   white-space: pre-wrap;
+}
+
+code {
+  font-family: Source Code Pro, monospace;
 }
 
 div.highlight {
@@ -71,21 +75,46 @@ div.highlight {
 h1, h2, h3, h4, h5, h6, .headline-font {
   font-family: Open Sans, sans-serif;
   font-weight: 700;
-  font-size: 36px;
-  line-height: 54px;
-  margin-top: 36px;
+  line-height: 1.25em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+h1 {
+  font-size: 2em;
+}
+
+h2 {
+  font-size: 1.25em;
+}
+
+h3, h4, h5, h6 {
+  font-size: 1em;
+}
+
+a {
+  text-decoration: underline;
+  color: #090451;
+}
+
+a:hover {
+  text-decoration: underline;
+  color: #ec6b1d;
+}
+
+a:active {
+  color: #ec6b1d;
 }
 
 body, div {
   font-family: Lato, serif;
   font-weight: 300;
-  font-size: 18px;
-  line-height: 27px;
+  line-height: 1.5em;
 }
 
 .logo {
   font-family: Arvo;
-  font-size: 48px;
+  font-size: 2.66em;
   text-align: center;
   font-weight: 700;
 }
@@ -94,20 +123,15 @@ body, div {
   color: #ec6b1d;
 }
 
-.main {
-  margin-left: 260px;
-  padding-top: 36px;
-  padding-bottom: 72px;
-}
-
-.article, .page {
-  margin-left: 72px;
-  max-width: 628px;
-}
-
 .article .info {
-  font-size: 14px;
-  margin-bottom: 18px;
+  font-size: 0.8em;
+  margin-bottom: 1em;
+}
+
+.article-item .info {
+  font-size: 0.8em;
+  margin-top: 1em;
+  margin-bottom: -0.5em;
 }
 
 p, ul, ol {
@@ -126,43 +150,124 @@ p.teaser {
   list-style-type: decimal;
 }
 
+.read-article {
+  font-weight: 700;
+  margin-left: 1em;
+  margin-top: 0em;
+}
 
-.sidebar {
-  width: 260px;
-  position: fixed;
+/* navbar styles */
+.navbar {
   background-color: #090451;
   color: white;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
 }
 
-.sidebar a, .sidebar a:active, .sidebar a:visited {
+.navbar a, .navbar a:active, .navbar a:visited {
   color: white;
 }
 
-.sidebar ul.menu {
-  text-align: right;
-  margin-right: 10px;
-  margin-top: 18px;
-}
-
-.sidebar > div {
-  margin: 10px;
-}
-
-.sidebar div, .sidebar p {
-  /*border: 1px dotted;*/
-}
-
-.sidebar .gitlink {
+.navbar .gitlink {
   text-align: center;
 }
 
-.sidebar .gitlink img {
+.navbar .gitlink img {
   width: 36px;
   height: 36px;
-  margin-bottom: 18px;
-  margin-top: 18px;
+}
+
+.navbar .logo a {
+  text-decoration: none;
+}
+
+.author-short-bio {
+  color: #666;
+  font-style: italic;
+  font-size: 0.8em;
+}
+
+@media screen and (max-device-width: 768px) {
+  body, div {
+    font-size: 48px;
+  }
+
+  img {
+    width: 80%;
+    margin: auto;
+  }
+
+  .navbar {
+    padding: 18px 18px 0px 18px;
+  }
+
+  .navbar .slogan {
+    display: none;
+  }
+
+  .article, .page {
+    margin: 18px;
+  }
+
+  .navbar {
+    display: flex;
+  }
+
+  .navbar ul {
+    margin-top: 10px;
+  }
+
+  .navbar ul li {
+    display: inline;
+    margin-left: 15px;
+  }
+
+  .navbar .gitlink img {
+    margin: 0px 10px 0px 0px;
+  }
+
+  .navbar .gitlink  {
+    text-align: right;
+    display: block;
+    flex-grow: 2;
+  }
+}
+
+@media screen and (min-device-width: 769px) {
+  body, div {
+    font-size: 18px;
+  }
+
+  .article, .page {
+    margin-left: 72px;
+    max-width: 628px;
+  }
+
+  .navbar {
+    width: 260px;
+    position: fixed;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .navbar ul.menu {
+    text-align: right;
+    margin-right: 10px;
+    margin-top: 18px;
+  }
+
+  .navbar > div {
+    margin: 10px;
+  }
+
+  .navbar .gitlink img {
+    margin-bottom: 18px;
+    margin-top: 18px;
+  }
+
+  .main {
+    margin-left: 260px;
+    padding-top: 36px;
+    padding-bottom: 72px;
+  }
 }
