@@ -20,8 +20,7 @@ Inline assembly in modern languages is easily forgotten in day-to-day programmin
 This article gives a short introduction into inline assembly in Rust. It focuses on embedded development, more specifically the [ARM](https://en.wikipedia.org/wiki/ARM_architecture) architecture, which has a good reputation for being clear to understand. It also sees a lot of application in the embedded world, where one is much more likely to find oneself reaching for an assembler than on the domain of [x86-64](https://en.wikipedia.org/wiki/X86-64).
 
 
-What is assembly?
-=================
+## What is assembly?
 
 Compiling a valid Rust program ultimately yields a binary than can be executed. The process of generating one includes multiple steps that are hidden from the programmer:
 
@@ -35,8 +34,7 @@ Binary or numerical machine code refers to a set of instructions the target CPU 
 Modern, high-level languages exist primarily to free the programmer from having to hand-write (and optimize) assembly code for their machine. Since gaining direct access to assembly instructions is rarely worth losing the ability to write high-level code, **[inline assembly](https://en.wikipedia.org/wiki/Inline_assembler)** can be used to write small fragments of assembly embedded in the language of choice.
 
 
-Syntax
-------
+### Syntax
 
 The different (human-readable) assembly syntaxes can cause a lot of confusion, as they change not only the manner in which different values are written but also the order in which operands are given. When writing x86 assembly, there are two widely used variations of assembly syntax available: [Intel and AT&T](http://www.imada.sdu.dk/Courses/DM18/Litteratur/IntelnATT.htm). Given the task of writing the value `0x1F` (31 in decimal) into the `eax` register, a programmer would have to write
 
@@ -67,9 +65,7 @@ General purpose registers in ARM assembly are named `r0` through `r16` (or highe
 An important fact to remember is that the assembly syntax changes depending on the platform and compiler backend. Inline assembly in Rust on the ARM platform uses the ARM-syntax mentioned above.
 
 
-The example program
-===================
-
+## The example program
 
 The following program solves the simple problem of finding the midway point between two other points that will be stored in `r0` through `r3`. More precisely, given two vectors $\mathbf{A} := \begin{bmatrix} x_1 \\\\ y_1 \end{bmatrix}$ and $\mathbf{B} := \begin{bmatrix} x_2 \\\\ y_2 \end{bmatrix}$, we want to calculate the midpoint vector $\\mathbf{M} := A + \\frac{(\\mathbf{B}-\\mathbf{A})}{2} = \frac{\\mathbf{A}+\\mathbf{B}}{2}$.
 
@@ -128,7 +124,7 @@ asr    r1, r1, #1
 
 The assembly code above will be used without comments further down. A fun way to try it out is using [Salman Arif's VisUAL](http://salmanarif.bitbucket.org/visual) ARM emulator.
 
-# Running Rust ARM code on x86
+## Running Rust ARM code on x86
 
 If you are not writing code on a [Raspberry Pi](https://www.raspberrypi.org/) the chance that you are already working on an ARM machine are pretty slim. To keep things simple, we will write the example on an x86 machine using [cross-compilation](https://en.wikipedia.org/wiki/Cross_compiler). First, we use [rustup](https://www.rustup.rs/) to install the necessary `arm-unknown-linux-gnueabihf`target:
 
@@ -182,7 +178,7 @@ qemu: uncaught target signal 11 (Segmentation fault) - core dumped
 error: Process didn't exit successfully: `target/arm-unknown-linux-gnueabihf/debug/example-arm-asm` (signal: 11, SIGSEGV: invalid memory reference)
 ```
 
-# The `asm!` macro
+## The `asm!` macro
 
 Looking at the `asm!` macro, whose [rather sparse documentation](https://doc.rust-lang.org/book/inline-assembly.html) prompted the writing of this article, we see that it has the following syntax:
 
@@ -197,7 +193,7 @@ asm!(assembly template
 
 Any amount of trailing `:` is optional, so far our example code has just been using the `assembly template` part.
 
-## clobbering
+### clobbering
 
 Now it is time to look at the reason why our program crashed. Disassembling our code using `arm-none-eabi-objdump -D target/arm-unknown-linux-gnueabihf/debug/example-arm-asm`, we get the following output (showing only relevant lines):
 
@@ -249,7 +245,7 @@ Looking at the disassembly output again, we see that the contents of `r0` are sa
 
 The example program now runs without crashing.
 
-## output
+### output
 
 To make the code above even slightly useful, we will need to be able to collect its output values. For this, the `output` parameter of the `asm!` macro can be used. In inline assembly, *operand expressions* are used to tell the compiler which variables should hold the end result of a calculation.
 
@@ -391,7 +387,7 @@ unsafe {
     );
 ```
 
-## Wrapping up
+### Wrapping up
 
 Using a data strucuture and moving the inline assembly inside a function cleans up the code nicely:
 
