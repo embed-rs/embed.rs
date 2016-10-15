@@ -4,9 +4,17 @@
 
 {% macro writer_list(writers) %}
 {% for writer in writers|sort(attribute="full_name") %}
-      <a href="{{ writer.link }}" title="about {{ writer.full_name }}">{{ writer.full_name }}</a>
+      <a href="{{ writer.link }}">{{ writer.full_name }}</a>
       {%- if not loop.last %}, {% endif %}
 {% endfor %}
+{% endmacro %}
+
+{% macro link_list(items, sep=", ", use_and=True) %}
+{%- for text, url in items -%}
+      {% if use_and and loop.revindex == 1 %} and {% endif %}
+      <a href="{{ url }}">{{ text }}</a>
+      {%- if loop.revindex > 2 or not use_and and loop.revindex > 1 %}{{sep}}{% endif %}
+{%- endfor %}
 {% endmacro %}
 
 {% block content %}
@@ -22,8 +30,14 @@
 
   {% for author in article.authors %}
   {%- if author.short_bio %}
-  <div class="author-short-bio">{{ author.short_bio|markdown }}</p>
+  <div class="author-short-bio">{{ author.short_bio|markdown }}</div>
   {%- endif %}
   {%- endfor %}
+
+  {% if article.discussion %}
+  <div class="discussion">
+  Discussion via {{link_list(article.discussion)}}
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
