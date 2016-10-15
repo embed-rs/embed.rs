@@ -60,7 +60,7 @@ brand primary: #ec6b1d;
 pre {
   font-family: Source Code Pro, monospace;
   font-weight: 400;
-  font-size: 14px;
+  font-size: 0.8em;
   white-space: pre-wrap;
 }
 
@@ -71,21 +71,21 @@ div.highlight {
 h1, h2, h3, h4, h5, h6, .headline-font {
   font-family: Open Sans, sans-serif;
   font-weight: 700;
-  font-size: 36px;
-  line-height: 54px;
-  margin-top: 36px;
+  font-size: 2em;
+  line-height: 1.25em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
 }
 
 body, div {
   font-family: Lato, serif;
   font-weight: 300;
-  font-size: 18px;
-  line-height: 27px;
+  line-height: 1.5em;
 }
 
 .logo {
   font-family: Arvo;
-  font-size: 48px;
+  font-size: 2.66em;
   text-align: center;
   font-weight: 700;
 }
@@ -95,7 +95,7 @@ body, div {
 }
 
 .article .info {
-  font-size: 14px;
+  font-size: 0.8em;
   margin-bottom: 18px;
 }
 
@@ -138,7 +138,16 @@ p.teaser {
   text-decoration: none;
 }
 
-@media screen and (max-width: 768px) {
+@media screen and (max-device-width: 768px) {
+  body, div {
+    font-size: 48px;
+  }
+
+  img {
+    width: 80%;
+    margin: auto;
+  }
+
   .navbar {
     padding: 18px 18px 0px 18px;
   }
@@ -175,7 +184,11 @@ p.teaser {
   }
 }
 
-@media screen and (min-width: 769px) {
+@media screen and (min-device-width: 769px) {
+  body, div {
+    font-size: 18px;
+  }
+
   .article, .page {
     margin-left: 72px;
     max-width: 628px;
