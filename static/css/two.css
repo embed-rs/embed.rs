@@ -144,10 +144,12 @@ p.teaser {
 
 .article ul li {
   list-style-type: disc;
+  margin-left: 2em;
 }
 
 .article ol li {
   list-style-type: decimal;
+  margin-left: 2em;
 }
 
 .read-article {
@@ -186,17 +188,17 @@ p.teaser {
 }
 
 @media screen and (max-device-width: 768px) {
-  body, div {
-    font-size: 48px;
-  }
-
   img {
     width: 80%;
     margin: auto;
   }
 
   .navbar {
-    padding: 18px 18px 0px 18px;
+    padding: 18px 0px 9px 0px;
+  }
+
+  .navbar .logo {
+    margin-left: 18px;
   }
 
   .navbar .slogan {
@@ -208,16 +210,24 @@ p.teaser {
   }
 
   .navbar {
-    display: flex;
+    display: block;
   }
 
   .navbar ul {
-    margin-top: 10px;
+    margin-top: 3px;
+    margin-bottom: 9px;
+    margin-left: 18px;
   }
 
   .navbar ul li {
     display: inline;
     margin-left: 15px;
+  }
+
+  .navbar .gitlink {
+    position: absolute;
+    top: 24px;
+    right: 0px;
   }
 
   .navbar .gitlink img {
