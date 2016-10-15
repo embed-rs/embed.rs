@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% block title %}{{article.title}} - embed.rs{% endblock %}
+
 {% macro writer_list(writers) %}
 {% for writer in writers|sort(attribute="full_name") %}
       <a href="{{ writer.link }}" title="about {{ writer.full_name }}">{{ writer.full_name }}</a>
