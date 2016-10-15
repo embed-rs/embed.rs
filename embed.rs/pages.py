@@ -149,8 +149,9 @@ cli = click.Group()
 
 
 @cli.command()
-def run():
-    app.run(debug=True)
+@click.option('-g', '--global', 'run_global', is_flag=True)
+def run(run_global):
+    app.run(host='0.0.0.0' if run_global else '127.0.0.1', debug=True)
 
 
 @cli.command()
