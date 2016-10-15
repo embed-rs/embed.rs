@@ -155,13 +155,14 @@ def atom_feed():
                     subtitle='Rust embedded development')
 
     for article in sorted(Article.all(), key=lambda a: a.date):
-        feed.add(article.title,
-                 app.jinja_env.filters['markdown'](article.content),
-                 content_type='html',
-                 author=", ".join(a.full_name for a in article.authors),
-                 url=url_for('show_article', slug=article.slug),
-                 id='article:article.slug', updated=article.date,
-                 published=article.date)
+        feed.add(
+            article.title,
+            app.jinja_env.filters['markdown'](article.content),
+            content_type='html',
+            author=", ".join(a.full_name for a in article.authors),
+            url=url_for('show_article', slug=article.url_slug),
+            id='article:article.slug', updated=article.date,
+            published=article.date)
 
     return feed.get_response()
 
