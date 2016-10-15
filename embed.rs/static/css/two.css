@@ -71,10 +71,21 @@ div.highlight {
 h1, h2, h3, h4, h5, h6, .headline-font {
   font-family: Open Sans, sans-serif;
   font-weight: 700;
-  font-size: 2em;
   line-height: 1.25em;
   margin-top: 0.5em;
   margin-bottom: 0.5em;
+}
+
+h1 {
+  font-size: 2em;
+}
+
+h2 {
+  font-size: 1.25em;
+}
+
+h3, h4, h5, h6 {
+  font-size: 1em;
 }
 
 body, div {
