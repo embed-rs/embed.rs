@@ -55,7 +55,7 @@ Of note is that not only are the instructions named slightly different ---
 
 Fortunately in this article we will not have to chose either one. ARM assembly usually uses a syntax different from both of these and manages to be more readable:
 
-```asm
+```nasm
 mov    r0, #0x1f
 ```
 
@@ -96,7 +96,7 @@ and diving each component by two
 
 This translates directly into assembly code:
 
-```asm
+```nasm
 ;      we are looking for the midpoint-pixel between two points
 ;      A := (5, 6) and B := (15, 27)
 ;      expected result M: = (10, 16)
