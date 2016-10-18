@@ -95,6 +95,10 @@ class Article(db.Model):
     _table = 'articles'
     _schema = {'date': Timestamp()}
 
+    @classmethod
+    def non_drafts(cls):
+        return sorted(cls.all(), key=lambda a: a.date, reverse=True)
+
     @property
     def url_slug(self):
         return self.slug.rstrip('.md')
@@ -135,7 +139,7 @@ freezer = Freezer(app)
 @app.route('/articles/')
 @app.route('/', endpoint='index')
 def list_articles():
-    return render_template('articles.html', articles=Article.all())
+    return render_template('articles.html', articles=Article.non_drafts())
 
 
 @app.route('/articles/<path:slug>/')
@@ -156,7 +160,7 @@ def atom_feed():
                     url='http://embed.rs',
                     subtitle='Rust embedded development')
 
-    for article in sorted(Article.all(), key=lambda a: a.date, reverse=True):
+    for article in Article.non_drafts():
         feed.add(
             article.title,
             mistune.markdown(article.content,
