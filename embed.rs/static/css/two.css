@@ -68,6 +68,11 @@ code {
   font-family: Source Code Pro, monospace;
 }
 
+em {
+  font-weight: 300;
+  font-style: italic;
+}
+
 div.highlight {
   margin-bottom: 18px;
 }
