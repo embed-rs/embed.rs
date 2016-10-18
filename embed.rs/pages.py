@@ -96,6 +96,13 @@ class Article(db.Model):
     _schema = {'date': Timestamp()}
 
     @classmethod
+    def get_or_404(cls, url_slug):
+        article = cls.get(url_slug + '.md')
+        if not article:
+            abort(404)
+        return article
+
+    @classmethod
     def get_articles(cls, drafts=None):
         if drafts is None:
             drafts = current_app.config['SHOW_DRAFTS']
@@ -158,7 +165,24 @@ def show_article(slug):
     article = Article.get(slug + '.md')
     if not article.published:
         abort(404)
-    return render_template('article.html', article=Article.get(slug + '.md'))
+    return render_template('article.html', article=Article.get_or_404(slug))
+
+
+@freezer.register_generator
+def show_draft():
+    for article in Article.get_articles(drafts=True):
+        if not article.published:
+            yield {'slug': article.url_slug}
+
+
+@app.route('/drafts/<path:slug>/')
+def show_draft(slug):
+    article = Article.get(slug + '.md')
+
+    if article.published:
+        return 'already published'
+
+    return render_template('article.html', article=Article.get_or_404(slug))
 
 
 @app.route('/about/')
@@ -206,6 +230,8 @@ def run(run_global):
     content_files = list(all_files(os.path.join(path, 'content')))
     template_files = list(all_files(os.path.join(path, 'templates')))
     extra_files = content_files + template_files
+
+    app.config['SHOW_DRAFTS'] = True
 
     app.run(host='0.0.0.0' if run_global else '127.0.0.1',
             debug=True,
