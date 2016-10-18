@@ -29,11 +29,15 @@
     &middot; {{ (article.date|arrow).format('MMMM DD, YYYY') }}</div>
   {{ article.content|markdown }}
 
+  {#-}
+  Bios are disabled
+
   {% for author in article.authors %}
   {%- if author.short_bio %}
   <div class="author-short-bio">{{ author.short_bio|markdown }}</div>
   {%- endif %}
   {%- endfor %}
+  #}
 
   {% if article.discussion %}
   <div class="discussion">
