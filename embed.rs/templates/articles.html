@@ -9,7 +9,7 @@
   {% for article in articles %}
   <div class="article-item">
     <div class="info">{{ (article.date|arrow).format('MMMM DD, YYYY') }}</div>
-    <h2><a href="{{url_for('.show_article', slug=article.url_slug)}}">{{ article.title }}</a></h2>
+    <h2><a href="{{article.url_for()}}">{{ article.title }}</a></h2>
     {% with teaser_end = ("<a href=\"" + url_for('.show_article', slug=article.url_slug) + "\">[ &hellip; ]</a>")|safe %}
     <p class="teaser">{{ article.teaser if article.teaser else article.content|markdown|striptags|truncate(end=teaser_end) }}</p>
     {% endwith %}

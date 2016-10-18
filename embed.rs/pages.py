@@ -95,6 +95,11 @@ class Article(db.Model):
     _table = 'articles'
     _schema = {'date': Timestamp()}
 
+    def url_for(self, **kwargs):
+        return url_for('show_article' if self.published else 'show_draft',
+                       slug=self.url_slug,
+                       **kwargs)
+
     @classmethod
     def get_or_404(cls, url_slug):
         article = cls.get(url_slug + '.md')
