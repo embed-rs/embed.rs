@@ -131,7 +131,7 @@ The assembly code above will be used without comments further down. A fun way to
 
 ## Running Rust ARM code on x86
 
-If you are not writing code on a [Raspberry Pi](https://www.raspberrypi.org/) the chance that you are already working on an ARM machine are pretty slim. To keep things simple, we will write the example on an x86 machine using [cross-compilation](https://en.wikipedia.org/wiki/Cross_compiler). First, we use [rustup](https://www.rustup.rs/) to install the necessary `arm-unknown-linux-gnueabihf`target:
+If you are not writing code on a [Raspberry Pi](https://www.raspberrypi.org/) the chance that you are already working on an ARM machine are pretty slim. To keep things simple, we will write the example on an x86 machine using [cross-compilation](https://en.wikipedia.org/wiki/Cross_compiler). First, we use [rustup](https://www.rustup.rs/) to install the necessary `arm-unknown-linux-gnueabihf` target:
 
 ```sh
 $ rustup target install arm-unknown-linux-gnueabihf
