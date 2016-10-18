@@ -174,10 +174,24 @@ def atom_feed():
 cli = click.Group()
 
 
+def all_files(path):
+    for (dir_name, _, fns) in os.walk(path):
+        for fn in fns:
+            yield os.path.join(dir_name, fn)
+
+
 @cli.command()
 @click.option('-g', '--global', 'run_global', is_flag=True)
 def run(run_global):
-    app.run(host='0.0.0.0' if run_global else '127.0.0.1', debug=True)
+    path = os.path.dirname(__file__)
+
+    content_files = list(all_files(os.path.join(path, 'content')))
+    template_files = list(all_files(os.path.join(path, 'templates')))
+    extra_files = content_files + template_files
+
+    app.run(host='0.0.0.0' if run_global else '127.0.0.1',
+            debug=True,
+            extra_files=extra_files, )
 
 
 @cli.command()
