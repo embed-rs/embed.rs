@@ -362,7 +362,7 @@ Result M: (5, 16)
 
 This is because the program violated one of the [requirements of LLVMs inline assembly](http://llvm.org/docs/LangRef.html#output-constraints):
 
-> Normally, it is expected that no output locations are written to by the assembly expression until all of the inputs have been read. As such, LLVM may assign the same register to an output and an input. If this is not safe (e.g. if the assembly contains two instructions, where the first writes to one output, and the second reads an input and writes to a second output), then the “&” modifier must be used (e.g. “=&r”) to specify that the output is an “early-clobber” output. Marking an output as “early-clobber” ensures that LLVM will not use the same register for any inputs (other than an input tied to this output).
+> Normally, it is expected that no output locations are written to by the assembly expression until all of the inputs have been read. As such, LLVM may assign the same register to an output and an input. If this is not safe (e.g. when writing to an output register before all of the input registers have been read), the “&” modifier must be used (e.g. “=&r”) to specify that the output is an “early-clobber” output. Marking an output as “early-clobber” ensures that LLVM will not assign it a register used by any input.
 
 In other words, LLVM will freely use a register that we wanted to read input from as the output register in our assembly code. While occasionally hard to notice, this is easily fixed by reordering the template
 
