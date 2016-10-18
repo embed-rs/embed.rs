@@ -59,17 +59,29 @@ brand primary: #ec6b1d;
 
 pre {
   font-family: Source Code Pro, monospace;
-  font-weight: 400;
-  font-size: 0.8em;
   white-space: pre-wrap;
+  margin-bottom: 18px;
 }
+
 
 code {
   font-family: Source Code Pro, monospace;
+  font-weight: 400;
 }
 
-div.highlight {
-  margin-bottom: 18px;
+code, pre {
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 21px;
+}
+
+em {
+  font-weight: 300;
+  font-style: italic;
+}
+
+strong {
+  font-weight: 700;
 }
 
 h1, h2, h3, h4, h5, h6, .headline-font {

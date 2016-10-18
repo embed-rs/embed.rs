@@ -39,7 +39,7 @@
     
     &middot; October 10, 2016</div>
   <p>Inline assembly in modern languages is easily forgotten in day-to-day programming. Excellent compilers produce code that is equivalent or better than what most programmers can hand-optimize. But outside of the field of optimization there are still some legitimate reasons to write assembly: Accessing CPU features that are platform-specific or simply not covered by compiler or library vendors.</p>
-<p>This article gives a short introduction into inline assembly in Rust. It focuses on embedded development, more specifically the <a href="https://en.wikipedia.org/wiki/ARM_architecture">ARM</a> architecture, which has a good reputation for being clear to understand. It also sees a lot of application in the embedded world, where one is much more likely to find oneself reaching for an assembler than on the domain of <a href="https://en.wikipedia.org/wiki/X86-64">x86-64</a>.</p>
+<p>This article gives a short introduction into inline assembly in Rust. It focuses on embedded development, more specifically the <a href="https://en.wikipedia.org/wiki/ARM_architecture">ARM</a> architecture, which has a good reputation for being easy to understand. It also sees a lot of application in the embedded world, where one is much more likely to find oneself reaching for an assembler than on the domain of <a href="https://en.wikipedia.org/wiki/X86-64">x86-64</a>.</p>
 <h2>What is assembly?</h2>
 <p>Compiling a valid Rust program ultimately yields a binary than can be executed. The process of generating one includes multiple steps that are hidden from the programmer:</p>
 <p><img src="http://embed.rs/static/content/arm-inline-assembly-rust_01.svg" alt="Rust source to machine code. See https://blog.rust-lang.org/2016/04/19/MIR.html for more details"></p>
@@ -106,7 +106,7 @@
 </pre></div>
 <p>The assembly code above will be used without comments further down. A fun way to try it out is using <a href="http://salmanarif.bitbucket.org/visual">Salman Arif's VisUAL</a> ARM emulator.</p>
 <h2>Running Rust ARM code on x86</h2>
-<p>If you are not writing code on a <a href="https://www.raspberrypi.org/">Raspberry Pi</a> the chance that you are already working on an ARM machine are pretty slim. To keep things simple, we will write the example on an x86 machine using <a href="https://en.wikipedia.org/wiki/Cross_compiler">cross-compilation</a>. First, we use <a href="https://www.rustup.rs/">rustup</a> to install the necessary <code>arm-unknown-linux-gnueabihf</code>target:</p>
+<p>If you are not writing code on a <a href="https://www.raspberrypi.org/">Raspberry Pi</a> the chance that you are already working on an ARM machine are pretty slim. To keep things simple, we will write the example on an x86 machine using <a href="https://en.wikipedia.org/wiki/Cross_compiler">cross-compilation</a>. First, we use <a href="https://www.rustup.rs/">rustup</a> to install the necessary <code>arm-unknown-linux-gnueabihf</code> target:</p>
 <div class="highlight"><pre><span></span>$ rustup target install arm-unknown-linux-gnueabihf
 </pre></div>
 <p>Now we can create a binary using Cargo with the following <code>main.rs</code></p>
@@ -274,7 +274,7 @@ error: Process didn&#39;t exit successfully: `target/arm-unknown-linux-gnueabihf
 
 <pre><code>Result M: (5, 16)</code></pre>
 <p>This is because the program violated one of the <a href="http://llvm.org/docs/LangRef.html#output-constraints">requirements of LLVMs inline assembly</a>:</p>
-<blockquote><p>Normally, it is expected that no output locations are written to by the assembly expression until all of the inputs have been read. As such, LLVM may assign the same register to an output and an input. If this is not safe (e.g. if the assembly contains two instructions, where the first writes to one output, and the second reads an input and writes to a second output), then the “&amp;” modifier must be used (e.g. “=&amp;r”) to specify that the output is an “early-clobber” output. Marking an output as “early-clobber” ensures that LLVM will not use the same register for any inputs (other than an input tied to this output).</p>
+<blockquote><p>Normally, it is expected that no output locations are written to by the assembly expression until all of the inputs have been read. As such, LLVM may assign the same register to an output and an input. If this is not safe (e.g. when writing to an output register before all of the input registers have been read), the “&amp;” modifier must be used (e.g. “=&amp;r”) to specify that the output is an “early-clobber” output. Marking an output as “early-clobber” ensures that LLVM will not assign it a register used by any input.</p>
 </blockquote>
 <p>In other words, LLVM will freely use a register that we wanted to read input from as the output register in our assembly code. While occasionally hard to notice, this is easily fixed by reordering the template</p>
 <div class="highlight"><pre><span></span><span class="n">asm</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;mov r2, $4</span>
@@ -341,10 +341,6 @@ error: Process didn&#39;t exit successfully: `target/arm-unknown-linux-gnueabihf
 </pre></div>
 <p>Inline assembly is tricky to get right and the documentation has a bit of a patchwork feel, especially if one is spoiled by the excellent material that is Rust's other documentation. Sometimes, though, there is no way around a few lines of inline assembly --- a situation we will explore in another article.</p>
 
-
-  
-  <div class="author-short-bio"><p>Marc Brinkmann has been developing embedded soft- and firmware in Rust as a freelancer since 2015 and is a CS student on the side. If you use an unchecked <code>unwrap()</code> inside a library, he <em>will</em> come and find you.</p>
-</div>
 
   
   <div class="discussion">
