@@ -154,6 +154,178 @@ $5 = 17</code></pre>
 
 <pre><code>(gdb) printf "%17s", 0x08010008
 Hello from Rust.</code></pre>
+<h2>Scripting the debugger</h2>
+<p>After finishing the target's code, the next step is implementing a little script for the debugger to make things easier. Gdb supports Python scripting, so we will start with a few lines of Python to retrieve the current stack frame and <em>inferior</em>, gdb's term for the target, instance. Then, it is time to decode the assembly instruction and check if it is a <code>bkpt</code>:</p>
+<div class="highlight"><pre><span></span><span class="c1"># get the current frame and inferior</span>
+<span class="n">frame</span> <span class="o">=</span> <span class="n">gdb</span><span class="o">.</span><span class="n">selected_frame</span><span class="p">()</span>
+<span class="n">inf</span> <span class="o">=</span> <span class="n">gdb</span><span class="o">.</span><span class="n">selected_inferior</span><span class="p">()</span>
+
+<span class="c1"># retrieve instruction</span>
+<span class="n">ins</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">architecture</span><span class="p">()</span><span class="o">.</span><span class="n">disassemble</span><span class="p">(</span><span class="n">frame</span><span class="o">.</span><span class="n">pc</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s1">r&#39;^bkpt\s+((?:0x)?[0-9a-f]+)$&#39;</span><span class="p">,</span> <span class="n">ins</span><span class="p">[</span><span class="s1">&#39;asm&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+</pre></div>
+<p>Afterwards, we check the immediate we saved using the regular expression and compare it to <code>0xAB</code>:</p>
+<div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">m</span><span class="p">:</span>
+    <span class="n">raw</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># we&#39;ve matched a breakpoint, decode the immediate</span>
+    <span class="n">bkpt_n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="mi">16</span> <span class="k">if</span> <span class="n">raw</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;0x&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="mi">10</span><span class="p">)</span>
+
+    <span class="c1"># breakpoint 0xab indicates a semi-hosting call</span>
+    <span class="k">if</span> <span class="n">bkpt_n</span> <span class="o">==</span> <span class="mh">0xAB</span><span class="p">:</span>
+       <span class="c1"># ...</span>
+</pre></div>
+<p>Finally, we retrieve the register contents of <code>r0</code> and <code>r1</code> and call the appropriate handler:</p>
+<div class="highlight"><pre><span></span><span class="c1"># retrieve the call type and obj registers</span>
+<span class="c1"># note: we would like to use `Frame.read_registers()` for this,</span>
+<span class="c1">#       but its only available on gdb 7.8 or newer</span>
+<span class="n">r0</span> <span class="o">=</span> <span class="n">gdb</span><span class="o">.</span><span class="n">parse_and_eval</span><span class="p">(</span><span class="s1">&#39;$r0&#39;</span><span class="p">)</span>
+<span class="n">r1</span> <span class="o">=</span> <span class="n">gdb</span><span class="o">.</span><span class="n">parse_and_eval</span><span class="p">(</span><span class="s1">&#39;$r1&#39;</span><span class="p">)</span>
+
+<span class="n">call_type</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">r0</span><span class="p">)</span>
+<span class="n">arg_addr</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">r1</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">call_type</span> <span class="o">==</span> <span class="mh">0x05</span><span class="p">:</span>
+    <span class="n">cls</span><span class="o">.</span><span class="n">handle_write</span><span class="p">(</span><span class="n">inf</span><span class="p">,</span> <span class="n">arg_addr</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+        <span class="s1">&#39;Call type 0x{:X} not implemented&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">call_type</span><span class="p">))</span>
+</pre></div>
+<p>We will later combine all the code into a single class.</p>
+<h3>Handling <code>SYS_WRITE</code></h3>
+<p>The <code>handle_write</code> method needs to be implemented as well:</p>
+<div class="highlight"><pre><span></span><span class="c1"># security, only allow fds 1 (stdout) and 2 (stderr)</span>
+<span class="n">SANE_FDS</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+<span class="c1"># whether or not to automatically continue execution</span>
+<span class="n">CONTINUE</span> <span class="o">=</span> <span class="bp">True</span>
+
+<span class="c1"># argument struct has three u32 entries: fd, address, len</span>
+<span class="n">buf</span> <span class="o">=</span> <span class="n">inf</span><span class="o">.</span><span class="n">read_memory</span><span class="p">(</span><span class="n">args_addr</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>
+<span class="n">fd</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="n">l</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&lt;lll&#39;</span><span class="p">,</span> <span class="n">buf</span><span class="p">)</span>
+
+<span class="c1"># limit length to 4M to avoid funky behavior</span>
+<span class="n">l</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">)</span>
+
+<span class="c1"># sanity check file descriptor</span>
+<span class="k">if</span> <span class="n">fd</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cls</span><span class="o">.</span><span class="n">SANE_FDS</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="s1">&#39;Refusing to write to file descriptor {} (not in {})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">fd</span><span class="p">,</span> <span class="n">cls</span><span class="o">.</span><span class="n">SANE_FDS</span><span class="p">))</span>
+</pre></div>
+<p>Even if it is only intended to be executed during debugging using a closed system, access to arbitrary file descriptors or unchecked length reads should make the security-conscious hair on the back of your neck stand-up; for this reason we check all arguments for sanity and limit what is written to four megabytes.</p>
+<p>Once we are sure our arguments are good, we can progress to read the string and print it:</p>
+<div class="highlight"><pre><span></span><span class="c1"># read the memory</span>
+<span class="n">data</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">inf</span><span class="o">.</span><span class="n">read_memory</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">l</span><span class="p">))</span>
+
+<span class="c1"># we manually map FDs. encoding is fixed at the rust-native utf8</span>
+<span class="k">if</span> <span class="n">fd</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf8&#39;</span><span class="p">))</span>
+<span class="k">elif</span> <span class="n">fd</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf8&#39;</span><span class="p">))</span>
+
+<span class="k">if</span> <span class="n">cls</span><span class="o">.</span><span class="n">CONTINUE</span><span class="p">:</span>
+    <span class="n">gdb</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;continue&#39;</span><span class="p">)</span>
+</pre></div>
+<p>An automatic continue is triggered as well if desired.</p>
+<h3>The final class</h3>
+<p>All the code gets combined into a <code>SemiHostHelper</code> class:</p>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">gdb</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">struct</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+
+<span class="k">class</span> <span class="nc">SemiHostHelper</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">SANE_FDS</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">CONTINUE</span> <span class="o">=</span> <span class="bp">True</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">on_break</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="c1"># get the current frame and inferior</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="n">gdb</span><span class="o">.</span><span class="n">selected_frame</span><span class="p">()</span>
+        <span class="n">inf</span> <span class="o">=</span> <span class="n">gdb</span><span class="o">.</span><span class="n">selected_inferior</span><span class="p">()</span>
+
+        <span class="c1"># retrieve instruction</span>
+        <span class="n">ins</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">architecture</span><span class="p">()</span><span class="o">.</span><span class="n">disassemble</span><span class="p">(</span><span class="n">frame</span><span class="o">.</span><span class="n">pc</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s1">r&#39;^bkpt\s+((?:0x)?[0-9a-f]+)$&#39;</span><span class="p">,</span> <span class="n">ins</span><span class="p">[</span><span class="s1">&#39;asm&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># we&#39;ve matched a breakpoint, decode the immediate</span>
+            <span class="n">bkpt_n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="mi">16</span> <span class="k">if</span> <span class="n">raw</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;0x&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="mi">10</span><span class="p">)</span>
+
+            <span class="c1"># breakpoint 0xab indicates a semi-hosting call</span>
+            <span class="k">if</span> <span class="n">bkpt_n</span> <span class="o">==</span> <span class="mh">0xAB</span><span class="p">:</span>
+                <span class="c1"># retrieve the call type and obj registers</span>
+                <span class="c1"># note: we would like to use `Frame.read_registers()`</span>
+                <span class="c1">#       for this, but its only available on gdb 7.8 or</span>
+                <span class="c1">#       newer</span>
+                <span class="n">r0</span> <span class="o">=</span> <span class="n">gdb</span><span class="o">.</span><span class="n">parse_and_eval</span><span class="p">(</span><span class="s1">&#39;$r0&#39;</span><span class="p">)</span>
+                <span class="n">r1</span> <span class="o">=</span> <span class="n">gdb</span><span class="o">.</span><span class="n">parse_and_eval</span><span class="p">(</span><span class="s1">&#39;$r1&#39;</span><span class="p">)</span>
+
+                <span class="n">call_type</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">r0</span><span class="p">)</span>
+                <span class="n">arg_addr</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">r1</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">call_type</span> <span class="o">==</span> <span class="mh">0x05</span><span class="p">:</span>
+                    <span class="n">cls</span><span class="o">.</span><span class="n">handle_write</span><span class="p">(</span><span class="n">inf</span><span class="p">,</span> <span class="n">arg_addr</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                        <span class="s1">&#39;Call type 0x{:X} not implemented&#39;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">call_type</span><span class="p">))</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">handle_write</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">inf</span><span class="p">,</span> <span class="n">args_addr</span><span class="p">):</span>
+        <span class="c1"># argument struct has three u32 entries: fd, address, len</span>
+        <span class="n">buf</span> <span class="o">=</span> <span class="n">inf</span><span class="o">.</span><span class="n">read_memory</span><span class="p">(</span><span class="n">args_addr</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>
+
+        <span class="n">fd</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="n">l</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&lt;lll&#39;</span><span class="p">,</span> <span class="n">buf</span><span class="p">)</span>
+
+        <span class="c1"># limit length to 4M to avoid funky behavior</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">)</span>
+
+        <span class="c1"># sanity check file descriptor</span>
+        <span class="k">if</span> <span class="n">fd</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cls</span><span class="o">.</span><span class="n">SANE_FDS</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;Refusing to write to file descriptor {}&#39;</span>
+                <span class="s1">&#39; (not in {})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">cls</span><span class="o">.</span><span class="n">SANE_FDS</span><span class="p">))</span>
+
+        <span class="c1"># read the memory</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">inf</span><span class="o">.</span><span class="n">read_memory</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">l</span><span class="p">))</span>
+
+        <span class="c1"># we manually map FDs. encoding is fixed at the rust-native utf8</span>
+        <span class="k">if</span> <span class="n">fd</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf8&#39;</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">fd</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf8&#39;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">cls</span><span class="o">.</span><span class="n">CONTINUE</span><span class="p">:</span>
+            <span class="n">gdb</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;continue&#39;</span><span class="p">)</span>
+</pre></div>
+<p>Now it is time to load it and test it in gdb:</p>
+
+<pre><code>(gdb) source semihosting.py
+(gdb) continue
+Continuing.
+
+Program received signal SIGTRAP, Trace/breakpoint trap.
+0x080102e4 in hello_embed_rs::_rust_start::hfb6a6b3dc95a15dd ()
+(gdb) pi SemiHostHelper.on_break()
+Hello from Rust.</code></pre>
+<h3>Setting up hooks</h3>
+<p>Once the script runs correctly, we can write a start-up script for the project to make the script automatically run on each breakpoint:</p>
+
+<pre><code>source semihosting.py
+catch signal SIGTRAP
+
+commands
+pi SemiHostHelper.on_break()
+end</code></pre>
+<p>The <code>catch signal SIGTRAP</code> creates a <em>catchpoint</em>. A catchpoint functions like a breakpoint but triggers on signals instead, like the <code>SIGTRAP</code> caused by the CPU breakpoint. The following <code>commands</code> section defines the commands to be executed whenever the catchpoint triggers.</p>
+<p>After passing the start-up script to gdb  on start using the <code>-x</code> option, gdb will automatically handle the semi-hosting breakpoints and continue execution thereafter.</p>
+<h2>Conclusion</h2>
+<p>Semi-hosting is another alternative to other IO methods that does not require any hardware except the likely already present debugging port. It is quite slow in comparison though and completely halts execution, so it is not suitable for high-volume or production logging. Another drawback is that if the breakpoints are not handled, execution will simply stay paused.</p>
+<p>It can, however, be invaluable when debugging the IO facilities themselves. Another article will demonstrate how this can be used with the <code>embed-rs</code> libraries.</p>
 
 
   
