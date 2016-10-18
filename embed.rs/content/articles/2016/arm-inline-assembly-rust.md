@@ -22,7 +22,7 @@
 
 Inline assembly in modern languages is easily forgotten in day-to-day programming. Excellent compilers produce code that is equivalent or better than what most programmers can hand-optimize. But outside of the field of optimization there are still some legitimate reasons to write assembly: Accessing CPU features that are platform-specific or simply not covered by compiler or library vendors.
 
-This article gives a short introduction into inline assembly in Rust. It focuses on embedded development, more specifically the [ARM](https://en.wikipedia.org/wiki/ARM_architecture) architecture, which has a good reputation for being clear to understand. It also sees a lot of application in the embedded world, where one is much more likely to find oneself reaching for an assembler than on the domain of [x86-64](https://en.wikipedia.org/wiki/X86-64).
+This article gives a short introduction into inline assembly in Rust. It focuses on embedded development, more specifically the [ARM](https://en.wikipedia.org/wiki/ARM_architecture) architecture, which has a good reputation for being easy to understand. It also sees a lot of application in the embedded world, where one is much more likely to find oneself reaching for an assembler than on the domain of [x86-64](https://en.wikipedia.org/wiki/X86-64).
 
 
 ## What is assembly?
