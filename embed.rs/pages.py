@@ -156,7 +156,7 @@ def atom_feed():
                     url='http://embed.rs',
                     subtitle='Rust embedded development')
 
-    for article in sorted(Article.all(), key=lambda a: a.date):
+    for article in sorted(Article.all(), key=lambda a: a.date, reverse=True):
         feed.add(
             article.title,
             mistune.markdown(article.content,
