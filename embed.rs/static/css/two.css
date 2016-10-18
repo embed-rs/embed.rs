@@ -62,6 +62,7 @@ pre {
   white-space: pre-wrap;
   font-weight: 400;
   font-size: 14px;
+  margin-bottom: 18px;
 }
 
 code {
@@ -77,10 +78,6 @@ em {
 
 strong {
   font-weight: 700;
-}
-
-div.highlight {
-  margin-bottom: 18px;
 }
 
 h1, h2, h3, h4, h5, h6, .headline-font {
