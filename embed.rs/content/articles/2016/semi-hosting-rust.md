@@ -193,3 +193,214 @@ We can now print the string:
 (gdb) printf "%17s", 0x08010008
 Hello from Rust.
 ```
+
+
+Scripting the debugger
+----------------------
+
+After finishing the target's code, the next step is implementing a little script for the debugger to make things easier. Gdb supports Python scripting, so we will start with a few lines of Python to retrieve the current stack frame and *inferior*, gdb's term for the target, instance. Then, it is time to decode the assembly instruction and check if it is a `bkpt`:
+
+```python
+# get the current frame and inferior
+frame = gdb.selected_frame()
+inf = gdb.selected_inferior()
+
+# retrieve instruction
+ins = frame.architecture().disassemble(frame.pc())[0]
+m = re.match(r'^bkpt\s+((?:0x)?[0-9a-f]+)$', ins['asm'].lower())
+```
+
+Afterwards, we check the immediate we saved using the regular expression and compare it to `0xAB`:
+
+```python
+if m:
+    raw = m.group(1)
+    # we've matched a breakpoint, decode the immediate
+    bkpt_n = int(raw, 16 if raw.startswith('0x') else 10)
+
+    # breakpoint 0xab indicates a semi-hosting call
+    if bkpt_n == 0xAB:
+       # ...
+```
+
+Finally, we retrieve the register contents of `r0` and `r1` and call the appropriate handler:
+
+```python
+# retrieve the call type and obj registers
+# note: we would like to use `Frame.read_registers()` for this,
+#       but its only available on gdb 7.8 or newer
+r0 = gdb.parse_and_eval('$r0')
+r1 = gdb.parse_and_eval('$r1')
+
+call_type = int(r0)
+arg_addr = int(r1)
+
+if call_type == 0x05:
+    cls.handle_write(inf, arg_addr)
+else:
+    raise NotImplementedError(
+        'Call type 0x{:X} not implemented'.format(call_type))
+```
+
+We will later combine all the code into a single class.
+
+### Handling `SYS_WRITE`
+
+The `handle_write` method needs to be implemented as well:
+
+```python
+# security, only allow fds 1 (stdout) and 2 (stderr)
+SANE_FDS = (1, 2)
+
+# whether or not to automatically continue execution
+CONTINUE = True
+
+# argument struct has three u32 entries: fd, address, len
+buf = inf.read_memory(args_addr, 12)
+fd, addr, l = struct.unpack('<lll', buf)
+
+# limit length to 4M to avoid funky behavior
+l = min(l, 4 * 1024 * 1024)
+
+# sanity check file descriptor
+if fd not in cls.SANE_FDS:
+    raise ValueError(
+        'Refusing to write to file descriptor {} (not in {})'.format(
+            fd, cls.SANE_FDS))
+```
+
+Even if it is only intended to be executed during debugging using a closed system, access to arbitrary file descriptors or unchecked length reads should make the security-conscious hair on the back of your neck stand-up; for this reason we check all arguments for sanity and limit what is written to four megabytes.
+
+Once we are sure our arguments are good, we can progress to read the string and print it:
+```python
+# read the memory
+data = bytes(inf.read_memory(addr, l))
+
+# we manually map FDs. encoding is fixed at the rust-native utf8
+if fd == 1:
+    sys.stdout.write(data.decode('utf8'))
+elif fd == 2:
+    sys.stderr.write(data.decode('utf8'))
+
+if cls.CONTINUE:
+    gdb.execute('continue')
+```
+
+An automatic continue is triggered as well if desired.
+
+### The final class
+
+All the code gets combined into a `SemiHostHelper` class:
+
+```python
+from __future__ import print_function
+import gdb
+import re
+import struct
+import sys
+
+
+class SemiHostHelper(object):
+    SANE_FDS = (1, 2)
+    CONTINUE = True
+
+    @classmethod
+    def on_break(cls):
+        # get the current frame and inferior
+        frame = gdb.selected_frame()
+        inf = gdb.selected_inferior()
+
+        # retrieve instruction
+        ins = frame.architecture().disassemble(frame.pc())[0]
+        m = re.match(r'^bkpt\s+((?:0x)?[0-9a-f]+)$', ins['asm'].lower())
+
+        if m:
+            raw = m.group(1)
+            # we've matched a breakpoint, decode the immediate
+            bkpt_n = int(raw, 16 if raw.startswith('0x') else 10)
+
+            # breakpoint 0xab indicates a semi-hosting call
+            if bkpt_n == 0xAB:
+                # retrieve the call type and obj registers
+                # note: we would like to use `Frame.read_registers()`
+                #       for this, but its only available on gdb 7.8 or
+                #       newer
+                r0 = gdb.parse_and_eval('$r0')
+                r1 = gdb.parse_and_eval('$r1')
+
+                call_type = int(r0)
+                arg_addr = int(r1)
+
+                if call_type == 0x05:
+                    cls.handle_write(inf, arg_addr)
+                else:
+                    raise NotImplementedError(
+                        'Call type 0x{:X} not implemented'
+                        .format(call_type))
+
+    @classmethod
+    def handle_write(cls, inf, args_addr):
+        # argument struct has three u32 entries: fd, address, len
+        buf = inf.read_memory(args_addr, 12)
+
+        fd, addr, l = struct.unpack('<lll', buf)
+
+        # limit length to 4M to avoid funky behavior
+        l = min(l, 4 * 1024 * 1024)
+
+        # sanity check file descriptor
+        if fd not in cls.SANE_FDS:
+            raise ValueError(
+                'Refusing to write to file descriptor {}'
+                ' (not in {})'.format(fd, cls.SANE_FDS))
+
+        # read the memory
+        data = bytes(inf.read_memory(addr, l))
+
+        # we manually map FDs. encoding is fixed at the rust-native utf8
+        if fd == 1:
+            sys.stdout.write(data.decode('utf8'))
+        elif fd == 2:
+            sys.stderr.write(data.decode('utf8'))
+
+        if cls.CONTINUE:
+            gdb.execute('continue')
+```
+
+Now it is time to load it and test it in gdb:
+
+```
+(gdb) source semihosting.py
+(gdb) continue
+Continuing.
+
+Program received signal SIGTRAP, Trace/breakpoint trap.
+0x080102e4 in hello_embed_rs::_rust_start::hfb6a6b3dc95a15dd ()
+(gdb) pi SemiHostHelper.on_break()
+Hello from Rust.
+```
+
+### Setting up hooks
+
+Once the script runs correctly, we can write a start-up script for the project to make the script automatically run on each breakpoint:
+
+```
+source semihosting.py
+catch signal SIGTRAP
+
+commands
+pi SemiHostHelper.on_break()
+end
+```
+
+The `catch signal SIGTRAP` creates a *catchpoint*. A catchpoint functions like a breakpoint but triggers on signals instead, like the `SIGTRAP` caused by the CPU breakpoint. The following `commands` section defines the commands to be executed whenever the catchpoint triggers.
+
+After passing the start-up script to gdb  on start using the `-x` option, gdb will automatically handle the semi-hosting breakpoints and continue execution thereafter.
+
+
+Conclusion
+----------
+
+Semi-hosting is another alternative to other IO methods that does not require any hardware except the likely already present debugging port. It is quite slow in comparison though and completely halts execution, so it is not suitable for high-volume or production logging. Another drawback is that if the breakpoints are not handled, execution will simply stay paused.
+
+It can, however, be invaluable when debugging the IO facilities themselves. Another article will demonstrate how this can be used with the `embed-rs` libraries.
