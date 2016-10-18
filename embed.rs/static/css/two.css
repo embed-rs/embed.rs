@@ -59,13 +59,15 @@ brand primary: #ec6b1d;
 
 pre {
   font-family: Source Code Pro, monospace;
-  font-weight: 400;
-  font-size: 0.8em;
   white-space: pre-wrap;
+  font-weight: 400;
+  font-size: 14px;
 }
 
 code {
   font-family: Source Code Pro, monospace;
+  font-weight: 400;
+  font-size: 14px;
 }
 
 em {
