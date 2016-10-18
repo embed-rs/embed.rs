@@ -3,7 +3,7 @@ import os
 
 import arrow
 import click
-from flask import Flask, render_template, url_for
+from flask import Flask, render_template, url_for, current_app, abort
 from flask_frozen import Freezer
 from flask_mistune import Mistune
 import highlight
@@ -96,8 +96,18 @@ class Article(db.Model):
     _schema = {'date': Timestamp()}
 
     @classmethod
-    def non_drafts(cls):
-        return sorted(cls.all(), key=lambda a: a.date, reverse=True)
+    def get_articles(cls, drafts=None):
+        if drafts is None:
+            drafts = current_app.config['SHOW_DRAFTS']
+
+        return sorted(
+            [a for a in cls.all() if drafts or a.published],
+            key=lambda a: a.date,
+            reverse=True)
+
+    @property
+    def published(self):
+        return not getattr(self, 'draft', False)
 
     @property
     def url_slug(self):
@@ -124,6 +134,7 @@ def site_db(path):
 
 
 app = Flask(__name__)
+app.config.setdefault('SHOW_DRAFTS', False)
 
 app.jinja_env.filters['arrow'] = arrow.get
 
@@ -139,11 +150,14 @@ freezer = Freezer(app)
 @app.route('/articles/')
 @app.route('/', endpoint='index')
 def list_articles():
-    return render_template('articles.html', articles=Article.non_drafts())
+    return render_template('articles.html', articles=Article.get_articles())
 
 
 @app.route('/articles/<path:slug>/')
 def show_article(slug):
+    article = Article.get(slug + '.md')
+    if not article.published:
+        abort(404)
     return render_template('article.html', article=Article.get(slug + '.md'))
 
 
@@ -160,7 +174,7 @@ def atom_feed():
                     url='http://embed.rs',
                     subtitle='Rust embedded development')
 
-    for article in Article.non_drafts():
+    for article in Article.get_articles():
         feed.add(
             article.title,
             mistune.markdown(article.content,
