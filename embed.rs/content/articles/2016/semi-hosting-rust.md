@@ -4,7 +4,7 @@
   "title": "Semi-hosting on ARM with Rust",
   "author_ids": [ "mbr" ],
   "contributor_ids": [ ],
-  "draft": True,
+  "draft": true,
   "tags": [
     "rust",
     "embedded",
@@ -21,15 +21,15 @@
 
 If a technology is in use for two decades and still has no Wikipedia entry, it seems safe to call it "a bit obscure". *Semi-hosting* is such a technology and can be a great help in debugging boards with no [IO](https://en.wikipedia.org/wiki/Input/output) facilities other than a [JTAG](https://en.wikipedia.org/wiki/JTAG) or another debugging port available.
 
-When developing a new firmware for an embedded board, `println!`-style (or `printf`-style for more *C*-affine readers) can be immensely useful; a quick-fix that can save a lot of time that would otherwise be spent setting breakpoints or single-stepping through a program. Being able to output text information does require IO ports of some sort though, be it USB, networking or another connection to the [MCU](https://en.wikipedia.org/wiki/Microcontroller) that the code is being run on. But the mere presence of these ports is not enough, without drivers they cannot be used, creating a classic chicken-and-egg problem when implementing said drivers.
+When developing firmware for an embedded board, `println!`-style (or `printf`-style for more *C*-affine readers) debugging can be immensely useful, a quick-fix that can save a lot of time that would otherwise be spent setting breakpoints or single-stepping through a program. Being able to output text does require IO ports of some sort though, be it USB, networking or another connection to the [MCU](https://en.wikipedia.org/wiki/Microcontroller) that the code is being run on. But the mere presence of these ports is not enough, without drivers they cannot be used, creating a classic chicken-and-egg problem when implementing said drivers.
 
-There is however a certain minimal amount of connectivity a developer can expect to be present on a system: Without being able to transfer new firmware to a device, no development can take place. During bare-metal development, this is often handled through a devices debugging facilities, which should include a way to set breakpoints, halt the CPU and explore memory contents as well. These functionalities can be (and have been) twisted into a full-blown RPC mechanism, as shown below.
+There is a way around the issue: During bare-metal development, uploading new program code is often handled through a targets debugging facilities, which should include a way to set breakpoints, halt the CPU and explore memory contents as well. These functionalities can be (and have been) twisted into a full-blown RPC mechanism, as shown below.
 
 
 Semi-hosting, step-by-step
 --------------------------
 
-*Semi-hosting* refers to making some of *host*'s (i.e. the computer running the debugger) functionality available to the *target*, the MCU being debugged, through the debugger itself.
+*Semi-hosting* refers to making some of the *host*'s (i.e. the computer running the debugger) functionality available to the *target*, the MCU being debugged, through the debugger itself.
 
 1. The target executes a **breakpoint** instruction with a special tag.
 2. The debugging-software on the host is **notified** of the breakpoint.
@@ -41,20 +41,20 @@ Semi-hosting, step-by-step
 ARMv6 and ARMv7
 ---------------
 
-The exact process is instruction set specific, for example ARMv6 and ARMv7 use a `BKPT` instruction, while some other ARM instruction sets use an `SVC` (*supervisor command*) instruction. This article will assume an ARM Cortex-M series MCU, which is using the ARMv7 style breakpoints. Additionally, instead of using any of the commercial debugging software solutions, [gdb](https://en.wikipedia.org/wiki/GNU_Debugger) will be used as the debugger. We can now implement the process step-by-step.
+The exact process is instruction set specific, for example ARMv6 and ARMv7 use a `bkpt` instruction, while some other ARM instruction sets use an `svc` (*supervisor command*) instruction. This article will assume an ARM Cortex-M series MCU, which is using the ARMv7 style breakpoints. Additionally, instead of using any of the commercial debugging software solutions, [gdb](https://en.wikipedia.org/wiki/GNU_Debugger) will be used as the debugger. We can now implement the process step-by-step:
 
 
 ### Halting the CPU
 
-A simple `BKPT 0xAB` inline assembly instruction is enough to halt the CPU (see the [inline assembly introduction](http://embed.rs/articles/2016/arm-inline-assembly-rust)):
+A simple `bkpt 0xAB` inline assembly instruction is enough to halt the CPU (see the [inline assembly introduction](http://embed.rs/articles/2016/arm-inline-assembly-rust) for help on the `asm!`-macro):
 
 ```rust
-asm!("BKPT 0xAB");
+asm!("bkpt 0xAB");
 ```
 
-The parameter `0xAB` is a magic-number taken from the [official documentation](http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0471g/Bgbjjgij.html), it does not have any effect on the target, it is not passed along when the CPU halts. Instead, the debugger is expected to find the current instruction up by reading the program counter and looking it up inside the binary, then checking which value is passed. If it is `0xAB`, the breakpoint is interpreted as a semi-hosting call.
+The parameter `0xAB` is a magic-number taken from the [official documentation](http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0471g/Bgbjjgij.html), it does not have any effect on the target, neither is it passed along when the CPU halts. Instead, the debugger is expected to find the current instruction by reading the program counter and looking it up inside the binary, then to check which value is passed. If it is `0xAB`, the breakpoint is interpreted as a semi-hosting call.
 
-We can now try this in gdb: A remote-debugger has been started on port `4242` and this is what happens when the MCU executes the `BKPT` instruction:
+We can now try this in gdb: A remote-debugger has been started and this is what happens when the MCU executes the `bkpt` instruction:
 
 ```
 Program received signal SIGTRAP, Trace/breakpoint trap.
@@ -69,7 +69,7 @@ Verifying the program counter is indeed at `0x80102e4`:
 $1 = 0x80102e4
 ```
 
-Checking the disassembly, we know that all the information we need is readily available.
+Checking the disassembly, we know that all the information we need is readily available. Note that the Thumb-Instruction set uses 2-byte instructions instead of 4:
 
 ```
 (gdb) disassemble 0x80102e4,+2
@@ -149,7 +149,9 @@ fn svc_sys_write(fd: usize, data: &[u8]) -> usize {
 }
 ```
 
-Calling it inside `main()`:
+The function is safe because all the parameters passed to `call_svc` are constant values or valid pointers; ensuring that the host's software does not have any bugs that corrupt our memory is outside the scope of our application.
+
+Calling `svc_sys_write` inside `main()`:
 
 ```rust
 // fd 2 is stderr:
@@ -183,7 +185,7 @@ $4 = 0x8010008
 $5 = 17
 ```
 
-The first field is our file-descriptor `2`. The second is the address of the string to be printed, note that is not inside the RAM area (`0x200xxxxxx`), but pointing to the flash memory (`0x080xxxxx`). The string constant is read directly from the binary! The third field denotes the `17` characters.
+The first field is our file-descriptor `2`. The second is the address of the string to be printed, note that it is not inside the RAM area (`0x200xxxxxx`), but pointing to the flash memory (`0x080xxxxx`). The string constant is read directly from the binary! The third field denotes the `17` characters.
 
 We can now print the string:
 
