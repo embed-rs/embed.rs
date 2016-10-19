@@ -59,8 +59,9 @@ brand primary: #ec6b1d;
 
 pre {
   font-family: Source Code Pro, monospace;
-  white-space: pre-wrap;
   margin-bottom: 18px;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
 }
 
 
