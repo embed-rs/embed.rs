@@ -20,9 +20,10 @@
       <li><a href="{{url_for('list_articles')}}">/articles</a></li>
       <li><a href="{{url_for('about')}}">/about</a></li>
     </ul>
-    <div class="gitlink last"><a href="https://github.com/embed-rs">
-      <img src="{{ url_for('.static', filename='img/github_light.png') }}">
-    </a></div>
+    <div class="gitlink last">
+      <a href="https://github.com/embed-rs"><img src="{{ url_for('.static', filename='img/github_light.png') }}"></a>
+      <a class="feed-link" href="{{ url_for('atom_feed') }}"><img src="{{ url_for('.static', filename='img/feed.svg') }}"></a>
+    </div>
   </div>
   <div class="main">
   {% block content %}

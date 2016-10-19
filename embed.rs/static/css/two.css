@@ -193,6 +193,10 @@ p.teaser {
   text-decoration: none;
 }
 
+.feed-link {
+  margin-left: 0.5em;
+}
+
 .author-short-bio {
   color: #666;
   font-style: italic;
@@ -244,12 +248,21 @@ p.teaser {
 
   .navbar .gitlink img {
     margin: 0px 10px 0px 0px;
+    border: none;
   }
 
   .navbar .gitlink  {
     text-align: right;
     display: block;
     flex-grow: 2;
+  }
+
+  .navbar .gitlink a {
+    text-decration: none;
+  }
+
+  .feed-link {
+    display: none;
   }
 }
 
