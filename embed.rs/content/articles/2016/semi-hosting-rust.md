@@ -216,7 +216,7 @@ Afterwards, we check the immediate we saved using the regular expression and com
 if m:
     raw = m.group(1)
     # we've matched a breakpoint, decode the immediate
-    bkpt_n = int(raw, 16 if raw.startswith('0x') else 10)
+    bkpt_n = int(raw, 0)
 
     # breakpoint 0xab indicates a semi-hosting call
     if bkpt_n == 0xAB:
