@@ -4,7 +4,6 @@
   "title": "Semi-hosting on ARM with Rust",
   "author_ids": [ "mbr" ],
   "contributor_ids": [ "phil-opp" ],
-  "draft": true,
   "tags": [
     "rust",
     "embedded",
