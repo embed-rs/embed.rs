@@ -38,10 +38,10 @@ Semi-hosting, step-by-step
 5. The target's CPU is unhalted by the debugger and **execution continues**.
 
 
-ARMv6 and ARMv7
+On ARM Cortex-M
 ---------------
 
-The exact process is instruction set specific, for example ARMv6 and ARMv7 use a `bkpt` instruction, while some other ARM instruction sets use an `svc` (*supervisor command*) instruction. This article will assume an ARM Cortex-M series MCU, which is using the ARMv7 style breakpoints. Additionally, instead of using any of the commercial debugging software solutions, [gdb](https://en.wikipedia.org/wiki/GNU_Debugger) will be used as the debugger. We can now implement the process step-by-step:
+The exact process is instruction set specific, for a Cortex-M in Thumb mode uses a `bkpt` instruction, while other ARM instruction sets uses an `svc` (*supervisor command*) or other instructions. Additionally, instead of using any of the commercial debugging software solutions, [gdb](https://en.wikipedia.org/wiki/GNU_Debugger) will be used as the debugger. We can now implement the process step-by-step:
 
 
 ### Halting the CPU
