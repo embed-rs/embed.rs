@@ -12,7 +12,8 @@
     "arm"
   ],
   "discussion": [
-
+    ["/r/rust", "https://www.reddit.com/r/rust/comments/58botg/semihosting_on_arm_with_rust/"],
+    ["Hacker News", "http://embed.rs/articles/2016/semi-hosting-rust/"]
   ]
 
 }
