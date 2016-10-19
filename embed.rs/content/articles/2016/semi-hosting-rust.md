@@ -41,7 +41,7 @@ Semi-hosting, step-by-step
 On ARM Cortex-M
 ---------------
 
-The exact process is instruction set specific, for a Cortex-M in Thumb mode uses a `bkpt` instruction while other ARM instruction sets uses an `svc` (*supervisor command*) or other instructions. Additionally, instead of using any of the commercial debugging software solutions, [gdb](https://en.wikipedia.org/wiki/GNU_Debugger) will be used as the debugger. We can now implement the process step-by-step:
+The exact process is instruction set specific, for a Cortex-M in Thumb mode uses a `bkpt` instruction while other ARM instruction sets use an `svc` (*supervisor command*) or another instruction. Additionally, instead of using any of the commercial debugging software solutions, [gdb](https://en.wikipedia.org/wiki/GNU_Debugger) will be used as the debugger. We can now implement the process step-by-step:
 
 
 ### Halting the CPU
