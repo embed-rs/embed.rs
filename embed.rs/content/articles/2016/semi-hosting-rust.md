@@ -404,3 +404,22 @@ Concluding remarks
 Semi-hosting is another alternative to other IO methods that does not require any hardware except the likely already present debugging port. It is quite slow in comparison though and completely halts execution, so it is not suitable for high-volume or production logging. Another drawback is that if the breakpoints are not handled, execution will simply stay paused. It can, however, be invaluable when debugging the IO facilities themselves.
 
 This article showed how one of the original semi-hosting functions defined by the ARM compiler collection can be implemented, but there is no hard rule declaring these the only possible conventions. When not going for compatibility with other systems, creating smaller and safer alternatives with restricted functionality may be a viable option as well.
+
+<hr>
+
+(Updated on Oct 19th, 2016):
+
+Bonus: OpenOCD
+--------------
+
+
+Pointed out by [ctz99](https://www.reddit.com/user/ctz99), [OpenOCD](http://openocd.org/) supports arm semi-hosting as well, which saves the trouble of having to implement the Python scripts for gdb. Activation is easy from within gdb, when debugging through OpenOCD:
+
+```
+(gdb) monitor arm semihosting enable
+semihosting is enabled
+(gdb) continue
+Continuing.
+```
+
+Note that gdb will then no longer receive SIGTRAPs caused by semi-hosting calls; OpenOCD will handle them itself. As a consequence, all output will be displayed by OpenOCD instead as well.
