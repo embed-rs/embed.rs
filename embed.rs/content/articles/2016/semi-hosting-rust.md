@@ -3,7 +3,7 @@
   "date": "2016-10-18T12:36:00+02:00",
   "title": "Semi-hosting on ARM with Rust",
   "author_ids": [ "mbr" ],
-  "contributor_ids": [ ],
+  "contributor_ids": [ "phil-opp" ],
   "draft": true,
   "tags": [
     "rust",
@@ -81,7 +81,7 @@ End of assembler dump.
 
 ### Implementing the `SVC_WRITE` call
 
-The [`SVC_WRITE`](http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0471g/Bacbedji.html) call is specified by the ARM compiler toolchain to write arbitrary data to a file descriptor on the host. The general calling convention for semi-hosting calls is as follows:
+The [`SVC_WRITE`](http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0471g/Bacbedji.html) call is specified by the ARM compiler toolchain to write arbitrary data to a file descriptor on the host. The general calling convention for any semi-hosting call is as follows:
 
 * `r0` must contain the number indicating the type of call.
 * `r1` is a pointer to a struct containing arguments for the call.
@@ -89,21 +89,7 @@ The [`SVC_WRITE`](http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.du
 * A call can return either a single 32-bit integer or an address, both of which
   are stored in `r0` afterwards.
 
-The ID associated with `SVC_WRITE` is `0x05`, it must be moved into register `r0`. Furthermore a parameter struct is necessary:
-
-```rust
-#[repr(C)]
-struct SvcWriteCall {
-    // the file descriptor on the host
-    fd: usize,
-    // pointer to data to write
-    addr: *const u8,
-    // length of data to write
-    len: usize,
-}
-```
-
-Armed with this definition, we can implement the SVC-calling function:
+We can implement a generic SVC-calling function first:
 
 ```rust
 unsafe fn call_svc(num: usize, addr: *const ()) -> usize {
@@ -129,7 +115,21 @@ unsafe fn call_svc(num: usize, addr: *const ()) -> usize {
 
 The `"volatile"` option indicates that the code has side-effects and should not be by removed by optimizations. The whole function is marked `unsafe`, because we are dereferencing the `addr` pointer, albeit the host does our dirty work.
 
-With the capability to perform arbitrary SVC-calls, we implement the `SYS_WRITE` function by placing the argument structure on the stack, then passing a pointer to it to `call_svc`.
+To implement `SVC_WRITE`, whose ID is `0x05`, we also need a parameter struct (pointed to by `addr`):
+
+```rust
+#[repr(C)]
+struct SvcWriteCall {
+    // the file descriptor on the host
+    fd: usize,
+    // pointer to data to write
+    addr: *const u8,
+    // length of data to write
+    len: usize,
+}
+```
+
+We implement the `SYS_WRITE` function by placing the argument structure on the stack, then passing a pointer to it to `call_svc`.
 
 ```rust
 const SYS_WRITE: usize = 0x05;
@@ -398,9 +398,9 @@ The `catch signal SIGTRAP` creates a *catchpoint*. A catchpoint functions like a
 After passing the start-up script to gdb  on start using the `-x` option, gdb will automatically handle the semi-hosting breakpoints and continue execution thereafter.
 
 
-Conclusion
-----------
+Concluding remarks
+------------------
 
-Semi-hosting is another alternative to other IO methods that does not require any hardware except the likely already present debugging port. It is quite slow in comparison though and completely halts execution, so it is not suitable for high-volume or production logging. Another drawback is that if the breakpoints are not handled, execution will simply stay paused.
+Semi-hosting is another alternative to other IO methods that does not require any hardware except the likely already present debugging port. It is quite slow in comparison though and completely halts execution, so it is not suitable for high-volume or production logging. Another drawback is that if the breakpoints are not handled, execution will simply stay paused. It can, however, be invaluable when debugging the IO facilities themselves.
 
-It can, however, be invaluable when debugging the IO facilities themselves. Another article will demonstrate how this can be used with the `embed-rs` libraries.
+This article showed how one of the original semi-hosting functions defined by the ARM compiler collection can be implemented, but there is no hard rule declaring these the only possible conventions. When not going for compatibility with other systems, creating smaller and safer alternatives with restricted functionality may be a viable option as well.
