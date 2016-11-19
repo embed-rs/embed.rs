@@ -20,9 +20,10 @@
       <li><a href="/articles/">/articles</a></li>
       <li><a href="/about/">/about</a></li>
     </ul>
-    <div class="gitlink last"><a href="https://github.com/embed-rs">
-      <img src="/static/img/github_light.png">
-    </a></div>
+    <div class="gitlink last">
+      <a href="https://github.com/embed-rs"><img src="/static/img/github_light.png"></a>
+      <a class="feed-link" href="/atom.xml"><img src="/static/img/feed.svg"></a>
+    </div>
   </div>
   <div class="main">
   
@@ -32,6 +33,10 @@
     by 
       <a href="https://github.com/mbr">Marc Brinkmann</a>
 
+    with contributions from 
+      <a href="https://github.com/phil-opp">Philipp Oppermann</a>
+
+    
     &middot; October 18, 2016</div>
   <p>If a technology is in use for two decades and still has no Wikipedia entry, it seems safe to call it "a bit obscure". <em>Semi-hosting</em> is such a technology and can be a great help in debugging boards with no <a href="https://en.wikipedia.org/wiki/Input/output">IO</a> facilities other than a <a href="https://en.wikipedia.org/wiki/JTAG">JTAG</a> or another debugging port available.</p>
 <p>When developing firmware for an embedded board, <code>println!</code>-style (or <code>printf</code>-style for more <em>C</em>-affine readers) debugging can be immensely useful, a quick-fix that can save a lot of time that would otherwise be spent setting breakpoints or single-stepping through a program. Being able to output text does require IO ports of some sort though, be it USB, networking or another connection to the <a href="https://en.wikipedia.org/wiki/Microcontroller">MCU</a> that the code is being run on. But the mere presence of these ports is not enough, without drivers they cannot be used, creating a classic chicken-and-egg problem when implementing said drivers.</p>
@@ -45,8 +50,8 @@
 <li>The debugger uses its memory-reading capabilities to <strong>retrieve the arguments</strong> and passes these on to the host's procedure.</li>
 <li>The target's CPU is unhalted by the debugger and <strong>execution continues</strong>.</li>
 </ol>
-<h2>ARMv6 and ARMv7</h2>
-<p>The exact process is instruction set specific, for example ARMv6 and ARMv7 use a <code>bkpt</code> instruction, while some other ARM instruction sets use an <code>svc</code> (<em>supervisor command</em>) instruction. This article will assume an ARM Cortex-M series MCU, which is using the ARMv7 style breakpoints. Additionally, instead of using any of the commercial debugging software solutions, <a href="https://en.wikipedia.org/wiki/GNU_Debugger">gdb</a> will be used as the debugger. We can now implement the process step-by-step:</p>
+<h2>On ARM Cortex-M</h2>
+<p>The exact process is instruction set specific, for a Cortex-M in Thumb mode uses a <code>bkpt</code> instruction while other ARM instruction sets use an <code>svc</code> (<em>supervisor command</em>) or another instruction. Additionally, instead of using any of the commercial debugging software solutions, <a href="https://en.wikipedia.org/wiki/GNU_Debugger">gdb</a> will be used as the debugger. We can now implement the process step-by-step:</p>
 <h3>Halting the CPU</h3>
 <p>A simple <code>bkpt 0xAB</code> inline assembly instruction is enough to halt the CPU (see the <a href="http://embed.rs/articles/2016/arm-inline-assembly-rust">inline assembly introduction</a> for help on the <code>asm!</code>-macro):</p>
 <div class="highlight"><pre><span></span><span class="n">asm</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;bkpt 0xAB&quot;</span><span class="p">);</span><span class="w"></span>
@@ -68,7 +73,7 @@ Dump of assembler code from 0x80102e4 to 0x80102e6:
 =&gt; 0x080102e4 &lt;...&gt;:bkpt  0x00ab
 End of assembler dump.</code></pre>
 <h3>Implementing the <code>SVC_WRITE</code> call</h3>
-<p>The <a href="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0471g/Bacbedji.html"><code>SVC_WRITE</code></a> call is specified by the ARM compiler toolchain to write arbitrary data to a file descriptor on the host. The general calling convention for semi-hosting calls is as follows:</p>
+<p>The <a href="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0471g/Bacbedji.html"><code>SVC_WRITE</code></a> call is specified by the ARM compiler toolchain to write arbitrary data to a file descriptor on the host. The general calling convention for any semi-hosting call is as follows:</p>
 <ul>
 <li><code>r0</code> must contain the number indicating the type of call.</li>
 <li><code>r1</code> is a pointer to a struct containing arguments for the call.</li>
@@ -76,18 +81,7 @@ End of assembler dump.</code></pre>
 <li>A call can return either a single 32-bit integer or an address, both of which
 are stored in <code>r0</code> afterwards.</li>
 </ul>
-<p>The ID associated with <code>SVC_WRITE</code> is <code>0x05</code>, it must be moved into register <code>r0</code>. Furthermore a parameter struct is necessary:</p>
-<div class="highlight"><pre><span></span><span class="cp">#[repr(C)]</span><span class="w"></span>
-<span class="k">struct</span><span class="w"> </span><span class="n">SvcWriteCall</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="c1">// the file descriptor on the host</span>
-<span class="w">    </span><span class="n">fd</span><span class="o">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="c1">// pointer to data to write</span>
-<span class="w">    </span><span class="n">addr</span><span class="o">:</span><span class="w"> </span><span class="o">*</span><span class="kr">const</span><span class="w"> </span><span class="kt">u8</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="c1">// length of data to write</span>
-<span class="w">    </span><span class="n">len</span><span class="o">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">,</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
-</pre></div>
-<p>Armed with this definition, we can implement the SVC-calling function:</p>
+<p>We can implement a generic SVC-calling function first:</p>
 <div class="highlight"><pre><span></span><span class="k">unsafe</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="n">call_svc</span><span class="p">(</span><span class="n">num</span><span class="o">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">,</span><span class="w"> </span><span class="n">addr</span><span class="o">:</span><span class="w"> </span><span class="o">*</span><span class="kr">const</span><span class="w"> </span><span class="p">())</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">usize</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">    </span><span class="c1">// allocate stack space for the possible result</span>
 <span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">result</span><span class="o">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">;</span><span class="w"></span>
@@ -109,7 +103,18 @@ are stored in <code>r0</code> afterwards.</li>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 <p>The <code>"volatile"</code> option indicates that the code has side-effects and should not be by removed by optimizations. The whole function is marked <code>unsafe</code>, because we are dereferencing the <code>addr</code> pointer, albeit the host does our dirty work.</p>
-<p>With the capability to perform arbitrary SVC-calls, we implement the <code>SYS_WRITE</code> function by placing the argument structure on the stack, then passing a pointer to it to <code>call_svc</code>.</p>
+<p>To implement <code>SVC_WRITE</code>, whose ID is <code>0x05</code>, we also need a parameter struct (pointed to by <code>addr</code>):</p>
+<div class="highlight"><pre><span></span><span class="cp">#[repr(C)]</span><span class="w"></span>
+<span class="k">struct</span><span class="w"> </span><span class="n">SvcWriteCall</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// the file descriptor on the host</span>
+<span class="w">    </span><span class="n">fd</span><span class="o">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// pointer to data to write</span>
+<span class="w">    </span><span class="n">addr</span><span class="o">:</span><span class="w"> </span><span class="o">*</span><span class="kr">const</span><span class="w"> </span><span class="kt">u8</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// length of data to write</span>
+<span class="w">    </span><span class="n">len</span><span class="o">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">,</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+<p>We implement the <code>SYS_WRITE</code> function by placing the argument structure on the stack, then passing a pointer to it to <code>call_svc</code>.</p>
 <div class="highlight"><pre><span></span><span class="kr">const</span><span class="w"> </span><span class="n">SYS_WRITE</span><span class="o">:</span><span class="w"> </span><span class="kt">usize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x05</span><span class="p">;</span><span class="w"></span>
 
 <span class="sd">/// Semi-hosting: `SYS_WRITE`. Writes `data` to file descriptor `fd`</span>
@@ -168,7 +173,7 @@ Hello from Rust.</code></pre>
 <div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">m</span><span class="p">:</span>
     <span class="n">raw</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
     <span class="c1"># we&#39;ve matched a breakpoint, decode the immediate</span>
-    <span class="n">bkpt_n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="mi">16</span> <span class="k">if</span> <span class="n">raw</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;0x&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="n">bkpt_n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
     <span class="c1"># breakpoint 0xab indicates a semi-hosting call</span>
     <span class="k">if</span> <span class="n">bkpt_n</span> <span class="o">==</span> <span class="mh">0xAB</span><span class="p">:</span>
@@ -323,11 +328,29 @@ pi SemiHostHelper.on_break()
 end</code></pre>
 <p>The <code>catch signal SIGTRAP</code> creates a <em>catchpoint</em>. A catchpoint functions like a breakpoint but triggers on signals instead, like the <code>SIGTRAP</code> caused by the CPU breakpoint. The following <code>commands</code> section defines the commands to be executed whenever the catchpoint triggers.</p>
 <p>After passing the start-up script to gdb  on start using the <code>-x</code> option, gdb will automatically handle the semi-hosting breakpoints and continue execution thereafter.</p>
-<h2>Conclusion</h2>
-<p>Semi-hosting is another alternative to other IO methods that does not require any hardware except the likely already present debugging port. It is quite slow in comparison though and completely halts execution, so it is not suitable for high-volume or production logging. Another drawback is that if the breakpoints are not handled, execution will simply stay paused.</p>
-<p>It can, however, be invaluable when debugging the IO facilities themselves. Another article will demonstrate how this can be used with the <code>embed-rs</code> libraries.</p>
+<h2>Concluding remarks</h2>
+<p>Semi-hosting is another alternative to other IO methods that does not require any hardware except the likely already present debugging port. It is quite slow in comparison though and completely halts execution, so it is not suitable for high-volume or production logging. Another drawback is that if the breakpoints are not handled, execution will simply stay paused. It can, however, be invaluable when debugging the IO facilities themselves.</p>
+<p>This article showed how one of the original semi-hosting functions defined by the ARM compiler collection can be implemented, but there is no hard rule declaring these the only possible conventions. When not going for compatibility with other systems, creating smaller and safer alternatives with restricted functionality may be a viable option as well.</p>
+<hr>
+
+<p>(Updated on Oct 19th, 2016):</p>
+<h2>Bonus: OpenOCD</h2>
+<p>Pointed out by <a href="https://www.reddit.com/user/ctz99">ctz99</a>, <a href="http://openocd.org/">OpenOCD</a> supports arm semi-hosting as well, which saves the trouble of having to implement the Python scripts for gdb. Activation is easy from within gdb, when debugging through OpenOCD:</p>
+
+<pre><code>(gdb) monitor arm semihosting enable
+semihosting is enabled
+(gdb) continue
+Continuing.</code></pre>
+<p>Note that gdb will then no longer receive SIGTRAPs caused by semi-hosting calls; OpenOCD will handle them itself. As a consequence, all output will be displayed by OpenOCD instead as well.</p>
 
 
+  
+  <div class="discussion">
+  Discussion via 
+      <a href="https://www.reddit.com/r/rust/comments/58botg/semihosting_on_arm_with_rust/">/r/rust</a> and 
+      <a href="https://news.ycombinator.com/item?id=12746033">Hacker News</a>
+
+  </div>
   
 </div>
 

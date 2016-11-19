@@ -59,8 +59,9 @@ brand primary: #ec6b1d;
 
 pre {
   font-family: Source Code Pro, monospace;
-  white-space: pre-wrap;
   margin-bottom: 18px;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
 }
 
 
@@ -76,7 +77,7 @@ code, pre {
 }
 
 em {
-  font-weight: 300;
+  font-weight: 400;
   font-style: italic;
 }
 
@@ -120,7 +121,6 @@ a:active {
 
 body, div {
   font-family: Lato, serif;
-  font-weight: 300;
   line-height: 1.5em;
 }
 
@@ -193,6 +193,10 @@ p.teaser {
   text-decoration: none;
 }
 
+.feed-link {
+  margin-left: 0.5em;
+}
+
 .author-short-bio {
   color: #666;
   font-style: italic;
@@ -244,12 +248,21 @@ p.teaser {
 
   .navbar .gitlink img {
     margin: 0px 10px 0px 0px;
+    border: none;
   }
 
   .navbar .gitlink  {
     text-align: right;
     display: block;
     flex-grow: 2;
+  }
+
+  .navbar .gitlink a {
+    text-decration: none;
+  }
+
+  .feed-link {
+    display: none;
   }
 }
 
